@@ -24,7 +24,7 @@ that the media you are casting resides on. An empty Plex server will work.
 
 To open the menu, press **c** on your computer or **home** within the Plex mobile apps.
 
-The menu enabled you to:
+The menu enables you to:
  - Adjust video transcoding quality.
  - Change the default transcoder settings.
  - Change subtitles or audio, while knowing the track names.
