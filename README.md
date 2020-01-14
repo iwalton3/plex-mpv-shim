@@ -122,6 +122,7 @@ All of these settings apply to direct play and are adjustable through the contro
     - It may be useful to change this on limited hardware.
     - If you change this, it should be changed to a profile that supports `hls` streaming.
  - `sanitize_output` - Prevent Plex tokens from being printed to the console. Default: `true`
+ - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
 
 ### MPV Configuration
 
