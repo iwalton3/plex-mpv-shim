@@ -131,9 +131,9 @@ class PlayerManager(object):
             import pdb
             pdb.set_trace()
 
-        @self._player.event_callback('idle')
-        def handle_end(event):
-            if self._video:
+        @self._player.property_observer('eof-reached')
+        def handle_end(_name, reached_end):
+            if self._video and reached_end:
                 self.put_task(self.finished_callback)
 
         self._video       = None
@@ -184,6 +184,7 @@ class PlayerManager(object):
         self._player.force_media_title = video.get_proper_title()
         self._video  = video
         self.update_subtitle_visuals(False)
+        self.upd_player_hide()
         self.external_subtitles = {}
         self.external_subtitles_rev = {}
 
@@ -408,5 +409,8 @@ class PlayerManager(object):
             self._player.sub_scale = settings.subtitle_size / 100
             self._player.sub_color = settings.subtitle_color
         self.timeline_handle()
+
+    def upd_player_hide(self):
+        self._player.keep_open = self._video.parent.has_next
 
 playerManager = PlayerManager()

@@ -367,6 +367,7 @@ class HttpHandler(SimpleHTTPRequestHandler):
 
     def refreshPlayQueue(self, path, arguments):
         playerManager._video.parent.upd_play_queue()
+        playerManager.upd_player_hide()
         timelineManager.SendTimelineToSubscribers()
 
     def mirror(self, path, arguments):
