@@ -1,6 +1,7 @@
 import logging
 import mpv
 import os
+import sys
 import requests
 import urllib.parse
 
@@ -21,6 +22,13 @@ SUBTITLE_POS = {
 }
 
 log = logging.getLogger('player')
+
+win_utils = None
+if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
+    try:
+        from . import win_utils
+    except ModuleNotFoundError:
+        log.warning("win_utils is not available.")
 
 # Q: What is with the put_task call?
 # A: If something that modifies the url is called from a keybind
@@ -187,6 +195,9 @@ class PlayerManager(object):
         self.upd_player_hide()
         self.external_subtitles = {}
         self.external_subtitles_rev = {}
+
+        if win_utils:
+            win_utils.raise_mpv()
 
         if offset > 0:
             self._player.playback_time = offset
