@@ -123,6 +123,7 @@ All of these settings apply to direct play and are adjustable through the contro
     - If you change this, it should be changed to a profile that supports `hls` streaming.
  - `sanitize_output` - Prevent Plex tokens from being printed to the console. Default: `true`
  - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
+ - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
 
 ### MPV Configuration
 
@@ -137,7 +138,8 @@ The project is written entierly in Python 3. There are no closed-source
 components in this project. It is fully hackable.
 
 The project is dependent on `python-mpv` and `requests`. If you are using Windows
-and would like mpv to be maximize properly, `pywin32` is also needed.
+and would like mpv to be maximize properly, `pywin32` is also needed. The GUI component
+uses `pystray` and `tkinter`, but there is a fallback cli mode.
 
 If you are using a local firewall, you'll want to allow inbound connections on
 TCP 3000 and UDP 32410, 32412, 32413, and 32414. The TCP port is for the web
@@ -154,6 +156,11 @@ features of the remote control api for video playback.
 If you are on Linux, you can install via pip. You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv).
 ```bash
 sudo pip3 install --upgrade plex-mpv-shim
+```
+If you would like the GUI and systray features, also install:
+```bash
+sudo pip3 install pystray
+sudo apt install python3-tk
 ```
 
 The current Debian package for `libmpv1` doesn't support the on-screen controller. If you'd like this, or need codecs that aren't packaged with Debian, you need to build mpv from source. Execute the following:
@@ -175,8 +182,8 @@ following these directions, please take care to ensure both the python
 and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 
 1. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
-2. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv requests pywin32`.
+2. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv requests pywin32 pystray`.
 3. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
 4. Extract the `mpv-1.dll` from the file and move it to the `plex-mpv-shim` folder.
 5. Open a regular `cmd` prompt. Navigate to the `plex-mpv-shim` folder.
-6. Run `pyinstaller -cF --add-binary "mpv-1.dll;." --icon media.ico run.py`.
+6. Run `pyinstaller -wF --add-binary "mpv-1.dll;." --add-binary "jellyfin_mpv_shim\systray.png;." --icon media.ico run.py`.

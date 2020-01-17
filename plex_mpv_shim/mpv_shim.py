@@ -33,6 +33,17 @@ def main():
     settings.load(conf_file)
     settings.add_listener(update_gdm_settings)
     
+    use_gui = False
+    if settings.enable_gui:
+        try:
+            from .gui_mgr import userInterface
+            use_gui = True
+        except Exception:
+            log.warning("Cannot load GUI. Falling back to command line interface.", exc_info=1)
+
+    if not use_gui:
+        from .cli_mgr import userInterface
+
     update_gdm_settings()
     gdm.start_all()
 
@@ -45,10 +56,10 @@ def main():
     playerManager.timeline_trigger = timelineManager.trigger
     actionThread.start()
     playerManager.action_trigger = actionThread.trigger
+    userInterface.open_player_menu = playerManager.menu.show_menu
 
     try:
-        while True:
-            time.sleep(1)
+        userInterface.run()
     except KeyboardInterrupt:
         print("")
         log.info("Stopping services...")
