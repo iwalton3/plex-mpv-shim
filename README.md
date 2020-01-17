@@ -18,6 +18,8 @@ If you are using the web application to cast, please note that the client must b
 on a network where there is a Plex server present. It does not have to be the plex server
 that the media you are casting resides on. An empty Plex server will work.
 
+The application runs with a notification icon by default. You can use this to view the application log, open the config folder, and open the application menu.
+
 ## Advanced Features
 
 ### Menu
