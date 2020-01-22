@@ -149,6 +149,7 @@ def mpv_color_to_plex(color):
 def plex_color_to_mpv(color):
     return '#FF'+color.upper()[1:]
 
+# Adapted from https://stackoverflow.com/questions/44374215/
 def override_getaddrinfo(old_getaddrinfo):
     plexre = re.compile("^([0-9]+-[0-9]+-[0-9]+-[0-9]+).[a-f0-9]+.plex.direct")
     def getaddrinfo(*args):
