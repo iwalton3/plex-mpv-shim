@@ -148,3 +148,21 @@ def mpv_color_to_plex(color):
 
 def plex_color_to_mpv(color):
     return '#FF'+color.upper()[1:]
+
+def override_getaddrinfo(old_getaddrinfo):
+    plexre = re.compile("^([0-9]+-[0-9]+-[0-9]+-[0-9]+).[a-f0-9]+.plex.direct")
+    def getaddrinfo(*args):
+        domain, port = args[:2]
+        match = plexre.match(domain)
+        if match:
+            ip = match[1].replace("-", ".")
+            return [(
+                        socket.AddressFamily.AF_INET,
+                        socket.SocketKind.SOCK_STREAM,
+                        6,
+                        '',
+                        (ip, port)
+                    )]
+        else:
+            return old_getaddrinfo(*args)
+    return getaddrinfo

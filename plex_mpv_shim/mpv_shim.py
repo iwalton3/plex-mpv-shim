@@ -5,6 +5,10 @@ import sys
 import time
 import os.path
 
+import socket
+from .utils import override_getaddrinfo
+socket.getaddrinfo = override_getaddrinfo(socket.getaddrinfo)
+
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format="%(asctime)s [%(levelname)8s] %(message)s")
 
 from . import conffile
