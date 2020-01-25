@@ -5,15 +5,18 @@ from collections import namedtuple
 import urllib.parse
 import requests
 import time
+import logging
 
 Part = namedtuple("Part", ["id", "audio", "subtitle"])
 Audio = namedtuple("Audio", ["id", "language_code", "name", "plex_name"])
 Subtitle = namedtuple("Subtitle", ["id", "language_code", "name", "is_forced", "plex_name"])
 
+log = logging.getLogger('bulk_subtitle')
 messages = []
 keep_messages = 6
 
 def render_message(message, show_text):
+    log.info(message)
     messages.append(message)
     text = "Selecting Tracks..."
     for message in messages[-6:]:
