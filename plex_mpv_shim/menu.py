@@ -351,6 +351,7 @@ class OSDMenu(object):
             ("Subtitle Position: {0}".format(settings.subtitle_position), self.subtitle_position_menu),
             ("Subtitle Color: {0}".format(self.get_subtitle_color(settings.subtitle_color)), self.subtitle_color_menu),
             self.get_settings_toggle("Auto Fullscreen", "fullscreen"),
+            self.get_settings_toggle("Media Key Seek", "media_key_seek"),
         ])
 
     def unwatched_menu_handle(self):

@@ -126,6 +126,7 @@ All of these settings apply to direct play and are adjustable through the contro
  - `sanitize_output` - Prevent Plex tokens from being printed to the console. Default: `true`
  - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
  - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
+ - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
 
 ### MPV Configuration
 
