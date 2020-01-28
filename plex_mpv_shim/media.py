@@ -158,7 +158,7 @@ class Video(object):
                     # "clip", ...
                     title = self.node.get("title")
             setattr(self, "_title", title)
-        return getattr(self, "_title")
+        return getattr(self, "_title") + (" (Transcode)" if self.is_transcode else "")
 
     def set_trs_override(self, video_bitrate, force_transcode, force_bitrate):
         if force_transcode:
