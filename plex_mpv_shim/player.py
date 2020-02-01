@@ -1,5 +1,4 @@
 import logging
-import mpv
 import os
 import sys
 import requests
@@ -12,6 +11,17 @@ from . import conffile
 from .utils import synchronous, Timer
 from .conf import settings
 from .menu import OSDMenu
+
+python_mpv_available=True
+is_using_ext_mpv=False
+try:
+    import mpv
+except OSError:
+    python_mpv_available=False
+
+if settings.mpv_ext or not python_mpv_available:
+    import python_mpv_jsonipc as mpv
+    is_using_ext_mpv=True
 
 APP_NAME = 'plex-mpv-shim'
 
@@ -46,8 +56,15 @@ class PlayerManager(object):
     """
     def __init__(self):
         mpv_config = conffile.get(APP_NAME,"mpv.conf", True)
+        extra_options = {}
+        if is_using_ext_mpv:
+            extra_options = {
+                "start_mpv": settings.mpv_ext_start,
+                "ipc_socket": settings.mpv_ext_ipc,
+                "mpv_location": settings.mpv_ext_path
+            }
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True,
-                               input_media_keys=True, include=mpv_config)
+                               input_media_keys=True, include=mpv_config, **extra_options)
         self.timeline_trigger = None
         self.action_trigger = None
         self.external_subtitles = {}
