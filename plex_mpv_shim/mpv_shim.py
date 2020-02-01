@@ -8,11 +8,8 @@ import os.path
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format="%(asctime)s [%(levelname)8s] %(message)s")
 
 from . import conffile
-from .client import HttpServer
 from .conf import settings
 from .gdm import gdm
-from .timeline import timelineManager
-from .action_thread import actionThread
 
 HTTP_PORT   = 3000
 APP_NAME = 'plex-mpv-shim'
@@ -44,6 +41,9 @@ def main():
         from .cli_mgr import userInterface
 
     from .player import playerManager
+    from .timeline import timelineManager
+    from .action_thread import actionThread
+    from .client import HttpServer
 
     update_gdm_settings()
     gdm.start_all()
