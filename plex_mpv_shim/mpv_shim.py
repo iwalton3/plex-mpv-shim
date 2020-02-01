@@ -11,7 +11,6 @@ from . import conffile
 from .client import HttpServer
 from .conf import settings
 from .gdm import gdm
-from .player import playerManager
 from .timeline import timelineManager
 from .action_thread import actionThread
 
@@ -43,6 +42,8 @@ def main():
 
     if not use_gui:
         from .cli_mgr import userInterface
+
+    from .player import playerManager
 
     update_gdm_settings()
     gdm.start_all()
