@@ -460,7 +460,7 @@ class Media(XMLCollection):
             else:
                 self.series = series
                 self.seq = seq
-                self.has_next = self.seq < len(self.series)
+                self.has_next = self.seq < len(self.series) - 1
                 self.has_prev = self.seq > 0
         elif self.is_tv:
             if series:
@@ -488,7 +488,7 @@ class Media(XMLCollection):
                 else:
                     self.seq -= len(specials)
                 self.series.extend(specials)
-            self.has_next = self.seq < len(self.series)
+            self.has_next = self.seq < len(self.series) - 1
             self.has_prev = self.seq > 0
 
     def upd_play_queue(self):
@@ -503,7 +503,7 @@ class Media(XMLCollection):
                     self.seq = i
                 self.series.append(video)
 
-            self.has_next = self.seq < len(self.series)
+            self.has_next = self.seq < len(self.series) - 1
             self.has_prev = self.seq > 0
 
     def get_queue_info(self):
@@ -516,7 +516,7 @@ class Media(XMLCollection):
 
     def get_next(self):
         if self.has_next:
-            if self.play_queue and self.seq+1 == len(self.series):
+            if self.play_queue and self.seq+2 == len(self.series):
                 self.upd_play_queue()
             next_video = self.series[self.seq+1]
             return Media(self.get_path(next_video.get('key')), self.series, self.seq+1, self.play_queue, self.play_queue_xml)
