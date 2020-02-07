@@ -184,7 +184,7 @@ class PlayerManager(object):
 
         # Fires at the end.
         @self._player.event_callback('idle')
-        def handle_end(event):
+        def handle_end_idle(event):
             if self._video:
                 self.put_task(self.finished_callback)
 
