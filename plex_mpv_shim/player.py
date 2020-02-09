@@ -42,9 +42,9 @@ if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
         log.warning("win_utils is not available.")
 
 # Q: What is with the put_task call?
-# A: If something that modifies the url is called from a keybind
-#    directly, it crashes the input handling. If you know why,
-#    please tell me. I'd love to get rid of it.
+# A: Some calls to python-mpv require event processing.
+#    put_task is used to deal with the events originating from
+#    the event thread, which would cause deadlock if they run there.
 
 class PlayerManager(object):
     """
