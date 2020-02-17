@@ -8,7 +8,7 @@ there are tools to manage them like no other Plex client.
 ## Getting Started
 
 If you are on Windows, simply [download the binary](https://github.com/iwalton3/plex-mpv-shim/releases).
-If you are using Linux, please see the [Linux Installation](https://github.com/iwalton3/plex-mpv-shim/blob/master/README.md#linux-installation) section below.
+If you are using Linux or OSX, please see the [Linux Installation](https://github.com/iwalton3/plex-mpv-shim/blob/master/README.md#linux-installation) or [OSX Installation](https://github.com/iwalton3/plex-mpv-shim/blob/master/README.md#osx-installation) sections below.
 
 To use the client, simply launch it and cast your media from another Plex application.
 The mobile and web applications are supported. You do not have to log in to the client
@@ -112,7 +112,8 @@ All of these settings apply to direct play and are adjustable through the contro
 The client now supports using an external copy of MPV, including one that is running prior to starting
 the client. This may be useful if your distribution only provides MPV as a binary executable (instead
 of as a shared library), or to connect to MPV-based GUI players. Please note that SMPlayer exhibits
-strange behaviour when controlled in this manner.
+strange behaviour when controlled in this manner. External MPV is currently the only working backend
+for media playback on OSX.
 
 - `mpv_ext` - Enable usage of the external player by default. Default: `false`
     - The external player may still be used by default if `libmpv1` is not available.
@@ -197,6 +198,25 @@ echo --enable-libmpv-shared > mpv_options
 sudo ./install
 sudo ldconfig
 ```
+
+## OSX Installation
+Currently on OSX only the external MPV backend seems to be working. I cannot test on OSX, so please report any issues you find.
+
+To install the CLI version:
+
+1. Install brew. ([Instructions](https://brew.sh/))
+2. Install python3 and mpv. `brew install python mpv`
+3. Install jellyfin-mpv-shim. `pip3 install --upgrade plex-mpv-shim`
+4. Run `plex-mpv-shim`.
+
+If you'd like to install the GUI version, you need a working copy of tkinter.
+
+1. Install pyenv. ([Instructions](https://medium.com/python-every-day/python-development-on-macos-with-pyenv-2509c694a808))
+2. Install TK and mpv. `brew install tcl-tk mpv`
+3. Install python3 with TK support. `FLAGS="-I$(brew --prefix tcl-tk)/include" pyenv install 3.8.1`
+4. Set this python3 as the default. `pyenv global 3.8.1`
+5. Install jellyfin-mpv-shim and pystray. `pip3 install --upgrade plex-mpv-shim pystray`
+6. Run `plex-mpv-shim`.
 
 ## Building on Windows
 
