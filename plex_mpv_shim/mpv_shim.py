@@ -4,6 +4,7 @@ import logging
 import sys
 import time
 import os.path
+import multiprocessing
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format="%(asctime)s [%(levelname)8s] %(message)s")
 
@@ -29,6 +30,9 @@ def main():
     settings.load(conf_file)
     settings.add_listener(update_gdm_settings)
     
+    if sys.platform.startswith("darwin"):
+        multiprocessing.set_start_method('forkserver')
+
     use_gui = False
     if settings.enable_gui:
         try:
