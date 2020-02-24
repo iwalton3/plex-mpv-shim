@@ -148,6 +148,9 @@ for media playback on OSX.
  - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
  - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
     - It may be useful to disable this if you are using an external player that already provides a user interface.
+ - `log_decisions` - Log the full playback URLs. Default: `false`
+ - `mpv_log_level` - Log level to use for mpv. Default: `info`
+    - Options: fatal, error, warn, info, v, debug, trace
 
 ### MPV Configuration
 

@@ -46,6 +46,8 @@ class Settings(object):
         "mpv_ext_ipc":          None,
         "mpv_ext_start":        True,
         "enable_osc":           True,
+        "log_decisions":        False,
+        "mpv_log_level":        "info",
     }
 
     def __getattr__(self, name):

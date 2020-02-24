@@ -12,16 +12,22 @@ from .utils import synchronous, Timer
 from .conf import settings
 from .menu import OSDMenu
 
+log = logging.getLogger('player')
+mpv_log = logging.getLogger('mpv')
+
 python_mpv_available=True
 is_using_ext_mpv=False
 if not settings.mpv_ext:
     try:
         import mpv
+        log.info("Using libmpv1 playback backend.")
     except OSError:
+        log.warning("Could not find libmpv1.")
         python_mpv_available=False
 
 if settings.mpv_ext or not python_mpv_available:
     import python_mpv_jsonipc as mpv
+    log.info("Using external mpv playback backend.")
     is_using_ext_mpv=True
 
 APP_NAME = 'plex-mpv-shim'
@@ -32,7 +38,18 @@ SUBTITLE_POS = {
     "middle": 80,
 }
 
-log = logging.getLogger('player')
+mpv_log_levels = {
+    "fatal": mpv_log.error,
+    "error": mpv_log.error,
+    "warn": mpv_log.warning,
+    "info": mpv_log.info
+}
+
+def mpv_log_handler(level, prefix, text):
+    if level in mpv_log_levels:
+        mpv_log_levels[level]("{0}: {1}".format(prefix, text))
+    else:
+        mpv_log.debug("{0}: {1}".format(prefix, text))
 
 win_utils = None
 if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
@@ -66,7 +83,9 @@ class PlayerManager(object):
                 "player-operation-mode": "cplayer"
             }
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True,
-                               input_media_keys=True, include=mpv_config, **extra_options)
+                               input_media_keys=True, include=mpv_config,
+                               log_handler=mpv_log_handler, loglevel=settings.mpv_log_level,
+                               **extra_options)
         self.timeline_trigger = None
         self.action_trigger = None
         self.external_subtitles = {}
@@ -229,6 +248,9 @@ class PlayerManager(object):
     def _play_media(self, video, url, offset=0):
         self.url = url
         self.menu.hide_menu()
+
+        if settings.log_decisions:
+            log.debug("Playing: {0}".format(url))
 
         self._player.play(self.url)
         self._player.wait_for_property("duration")
@@ -435,7 +457,10 @@ class PlayerManager(object):
             self._player.sub = self.external_subtitles[sub_id]
         else:
             try:
-                self._player.sub_add(self._video.get_external_sub(sub_id))
+                sub_url = self._video.get_external_sub(sub_id)
+                if settings.log_decisions:
+                    log.debug("Load External Subtitle: {0}".format(sub_url))
+                self._player.sub_add(sub_url)
                 self.external_subtitles[sub_id] = self._player.sub
                 self.external_subtitles_rev[self._player.sub] = sub_id
             except SystemError:
