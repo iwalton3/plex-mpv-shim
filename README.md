@@ -69,8 +69,9 @@ Here are the notable MPV keyboard shortcuts:
 
 ## Configuration
 
-The configuration file is located in different places depending on your platform. When you
-launch the program, the location of the config file will be printed. The locations are:
+The configuration file is located in different places depending on your platform. You can open the
+configuration folder using the systray icon. When you launch the program on Linux or OSX from the terminal,
+the location of the config file will be printed. The locations are:
  - Windows - `%appdata%\plex-mpv-shim\conf.json`
  - Linux - `~/.config/plex-mpv-shim/conf.json`
  - Mac OSX - `Library/Application Support/plex-mpv-shim/conf.json`
