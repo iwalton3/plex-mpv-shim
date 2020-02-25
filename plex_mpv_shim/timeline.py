@@ -224,12 +224,8 @@ class TimelineManager(threading.Thread):
                 options.pop("seekRange")
                 controllable.remove("seekTo")
 
-            # Volume control is enabled only if output isn't HDMI,
-            # although technically I'm pretty sure we can still control
-            # the volume even if the output is hdmi...
-            if settings.audio_output != "hdmi":
-                controllable.append("volume")
-                options["volume"] = str(playerManager.get_volume(percent=True)*100 or 0)
+            controllable.append("volume")
+            options["volume"] = str(playerManager.get_volume(percent=True) or 0)
 
             options["controllable"] = ",".join(controllable)
         else:

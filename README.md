@@ -134,7 +134,6 @@ for media playback on OSX.
     - If you disable this, the application will queue media based on the series.
     - This is a legacy feature. It is not regularly tested.
  - `client_uuid` - The identifier for the client. Set to a random value on first run.
- - `audio_output` - If set to `hdmi` it disables volume adjustment. Default: `hdmi`
  - `audio_ac3passthrough` - Does not work. Currently only changes transcoder settings. Default: `false`
  - `audio_dtspassthrough` - Does not work. Currently only changes transcoder settings. Default: `false`
  - `allow_http` - Allow insecure Plex server connections. Default: `false`

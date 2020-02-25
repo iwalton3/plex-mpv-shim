@@ -338,7 +338,7 @@ class HttpHandler(SimpleHTTPRequestHandler):
         if "volume" in arguments:
             volume = arguments["volume"]
             log.debug("HttpHandler::set settings volume to %s" % volume)
-            playerManager.set_volume(float(volume)/100.0)
+            playerManager.set_volume(int(volume))
         if "autoPlay" in arguments:
             settings.auto_play = arguments["autoPlay"] == "1"
             settings.save()
