@@ -14,9 +14,8 @@ To use the client, simply launch it and cast your media from another Plex applic
 The mobile and web applications are supported. You do not have to log in to the client
 or set it up in any other way.
 
-If you are using the web application to cast, please note that the client must be running
-on a network where there is a Plex server present. It does not have to be the plex server
-that the media you are casting resides on. An empty Plex server will work.
+If you want to use the web application to cast, you must either be on the same network as
+a Plex server (an empty one will work) or install the [MPV Shim Local Connection](https://greasyfork.org/en/scripts/398049-mpv-shim-local-connection) user script.
 
 The application runs with a notification icon by default. You can use this to view the application log, open the config folder, and open the application menu.
 
