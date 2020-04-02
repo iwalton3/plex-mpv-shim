@@ -291,19 +291,22 @@ class PlayerManager(object):
             os.system(settings.stop_cmd)
 
     @synchronous('_lock')
-    def stop(self):
-        if not self._video or self._player.playback_abort:
+    def stop(self, playend=False):
+        if not playend and (not self._video or self._player.playback_abort):
             self.exec_stop_cmd()
             return
 
-        log.debug("PlayerManager::stop stopping playback of %s" % self._video)
+        if not playend:
+            log.debug("PlayerManager::stop stopping playback of %s" % self._video)
 
         self._video.terminate_transcode()
         self._video  = None
         self._player.command("stop")
         self._player.pause = False
         self.timeline_handle()
-        self.exec_stop_cmd()
+
+        if not playend:
+            self.exec_stop_cmd()
 
     @synchronous('_lock')
     def get_volume(self, percent=False):
@@ -373,6 +376,7 @@ class PlayerManager(object):
             if settings.media_ended_cmd:
                 os.system(settings.media_ended_cmd)
             log.debug("PlayerManager::finished_callback reached end")
+            self.stop(playend=True)
 
     @synchronous('_lock')
     def watched_skip(self):
