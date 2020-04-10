@@ -7,8 +7,8 @@ import threading
 import urllib.request, urllib.parse, urllib.error
 import urllib.parse
 import socket
-from wsgiref.handlers import format_date_time
 from time import mktime
+from email.utils import formatdate
 
 from http.server import HTTPServer
 from http.server import SimpleHTTPRequestHandler
@@ -217,7 +217,11 @@ class HttpHandler(SimpleHTTPRequestHandler):
         # https://stackoverflow.com/questions/225086/
         now = datetime.datetime.now()
         stamp = mktime(now.timetuple())
-        self.send_header("Date", format_date_time(stamp))
+        self.send_header("Date", formatdate(
+            timeval=stamp,
+            localtime=False,
+            usegmt=True
+        ))
         
         self.send_header("Content-Length", str(len(xmlData)))
         
