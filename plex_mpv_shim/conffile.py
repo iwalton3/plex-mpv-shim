@@ -4,11 +4,14 @@ import sys
 import getpass
 
 # If no platform is matched, use the current directory.
-confdir = lambda app: ''
+_confdir = lambda app: ''
 username = getpass.getuser()
 
 def posix(app):
-    return os.path.join(os.path.expanduser("~"),'.config',app)
+    if os.environ.get("XDG_CONFIG_HOME"):
+        return os.path.join(os.environ["XDG_CONFIG_HOME"], app)
+    else:
+        return os.path.join(os.path.expanduser("~"),'.config',app)
 
 def win32(app):
     if os.environ.get("APPDATA"):
@@ -25,21 +28,25 @@ confdirs = (
 
 for platform, directory in confdirs:
     if sys.platform.startswith(platform):
-        confdir = directory
+        _confdir = directory
 
 custom_config = None
 for i, arg in enumerate(sys.argv):
     if arg == "--config" and len(sys.argv) > i+1:
         custom_config = sys.argv[i+1]
 
-def get(app, conf_file, create=False):
+def confdir(app):
     if custom_config is not None:
-        conf_folder = custom_config
+        return custom_config
     else:
-        conf_folder = confdir(app)
+        return _confdir(app)
+
+def get(app, conf_file, create=False):
+    conf_folder = confdir(app)
     if not os.path.isdir(conf_folder):
         os.makedirs(conf_folder)
     conf_file = os.path.join(conf_folder,conf_file)
     if create and not os.path.isfile(conf_file):
         open(conf_file, 'w').close()
     return conf_file
+
