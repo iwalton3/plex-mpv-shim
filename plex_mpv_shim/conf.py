@@ -47,6 +47,8 @@ class Settings(object):
         "enable_osc":           True,
         "log_decisions":        False,
         "mpv_log_level":        "info",
+        "idle_when_paused":     False,
+        "stop_idle":            False,
     }
 
     def __getattr__(self, name):

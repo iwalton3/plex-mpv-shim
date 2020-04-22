@@ -46,13 +46,17 @@ class TimelineManager(threading.Thread):
     def run(self):
         force_next = False
         while not self.halt:
-            if (playerManager._player and playerManager._video) or force_next:
+            if (playerManager._player and playerManager._video and (not settings.idle_when_paused
+                or not playerManager.is_paused())) or force_next:
                 if not playerManager.is_paused() or force_next:
                     self.SendTimelineToSubscribers()
                 self.delay_idle()
             force_next = False
-            if self.idleTimer.elapsed() > settings.idle_cmd_delay and not self.is_idle and settings.idle_cmd:
-                os.system(settings.idle_cmd)
+            if self.idleTimer.elapsed() > settings.idle_cmd_delay and not self.is_idle:
+                if settings.idle_when_paused and settings.stop_idle and playerManager._video:
+                    playerManager.stop()
+                if settings.idle_cmd:
+                    os.system(settings.idle_cmd)
                 self.is_idle = True
             if self.trigger.wait(1):
                 force_next = True

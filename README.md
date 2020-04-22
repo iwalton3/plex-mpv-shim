@@ -152,6 +152,8 @@ for media playback on OSX.
  - `log_decisions` - Log the full playback URLs. Default: `false`
  - `mpv_log_level` - Log level to use for mpv. Default: `info`
     - Options: fatal, error, warn, info, v, debug, trace
+ - `idle_when_paused` - Consider the player idle when paused. Default: `false`
+ - `stop_idle` - Stop the player when idle. (Requires `idle_when_paused`.) Default: `false`
 
 ### MPV Configuration
 
