@@ -149,22 +149,25 @@ class PlayerManager(object):
                 self.menu.show_menu()
             else:
                 self.menu.hide_menu()
-        
+
         @self._player.on_key_press('esc')
         def menu_back():
-            self.menu.menu_action('back')
+            if self.menu.is_menu_shown:
+                self.menu.menu_action('back')
+            else:
+                self._player.command('set', 'fullscreen', 'no')
 
         @self._player.on_key_press('enter')
         def menu_ok():
             self.menu.menu_action('ok')
-        
+
         @self._player.on_key_press('left')
         def menu_left():
             if self.menu.is_menu_shown:
                 self.menu.menu_action('left')
             else:
                 self._player.command("seek", -5)
-        
+
         @self._player.on_key_press('right')
         def menu_right():
             if self.menu.is_menu_shown:
@@ -190,7 +193,7 @@ class PlayerManager(object):
         def handle_pause():
             if self.menu.is_menu_shown:
                 self.menu.menu_action('ok')
-            else:    
+            else:
                 self.toggle_pause()
 
         # This gives you an interactive python debugger prompt.
