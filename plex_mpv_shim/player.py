@@ -86,7 +86,6 @@ class PlayerManager(object):
         self.external_subtitles_rev = {}
         self.url = None
         self.evt_queue = Queue()
-        self.user_binds = self.read_input_config(input_config)
 
         if is_using_ext_mpv:
             extra_options = {
@@ -153,11 +152,8 @@ class PlayerManager(object):
 
         @self._player.on_key_press('esc')
         def menu_back():
-            user_bind = self.user_binds.get('ESC')
             if self.menu.is_menu_shown:
                 self.menu.menu_action('back')
-            elif user_bind:
-                self._player.command(user_bind[0], *user_bind[1:])
             else:
                 self._player.command('set', 'fullscreen', 'no')
 
@@ -217,18 +213,6 @@ class PlayerManager(object):
         def handle_end_idle(event):
             if self._video:
                 self.put_task(self.finished_callback)
-
-    def read_input_config(self, fn):
-        OVERRIDDEN_CONFIGS = {'LEFT', 'RIGHT', 'UP', 'DOWN', 'ESC', 'SPACE'}
-        with open(fn, 'r') as f:
-            conf_data = f.read()
-        user_binds = {}
-        for command in conf_data.splitlines():
-            actions = command.split(' ')
-            button = actions[0].upper()
-            if button in OVERRIDDEN_CONFIGS:
-                user_binds[button] = [x for x in actions[1:] if x]
-        return user_binds
 
     # Put a task to the event queue.
     # This ensures the task executes outside
