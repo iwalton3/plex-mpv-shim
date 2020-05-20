@@ -86,6 +86,8 @@ class PlayerManager(object):
         self.external_subtitles_rev = {}
         self.url = None
         self.evt_queue = Queue()
+        self.is_in_intro = False
+        self.intro_has_triggered = False
 
         if is_using_ext_mpv:
             extra_options = {
@@ -139,7 +141,10 @@ class PlayerManager(object):
         @self._player.on_key_press('XF86_NEXT')
         def handle_media_next():
             if settings.media_key_seek:
-                self._player.command("seek", 30)
+                if self.is_in_intro:
+                    self.skip_intro()
+                else:
+                    self._player.command("seek", 30)
             else:
                 self.put_task(self.play_next)
 
@@ -181,14 +186,20 @@ class PlayerManager(object):
             if self.menu.is_menu_shown:
                 self.menu.menu_action('right')
             else:
-                self._player.command("seek", settings.seek_right)
+                if self.is_in_intro:
+                    self.skip_intro()
+                else:
+                    self._player.command("seek", settings.seek_right)
 
         @keypress(settings.kb_menu_up)
         def menu_up():
             if self.menu.is_menu_shown:
                 self.menu.menu_action('up')
             else:
-                self._player.command("seek", settings.seek_up)
+                if self.is_in_intro:
+                    self.skip_intro()
+                else:
+                    self._player.command("seek", settings.seek_up)
 
         @keypress(settings.kb_menu_down)
         def menu_down():
@@ -236,8 +247,30 @@ class PlayerManager(object):
         if self.timeline_trigger:
             self.timeline_trigger.set()
 
+    def skip_intro(self):
+        self._player.playback_time = self._video.intro_end
+        self.timeline_handle()
+        self.is_in_intro = False
+
     @synchronous('_lock')
     def update(self):
+        if ((settings.skip_intro_always or settings.skip_intro_prompt)
+            and self._video is not None and self._video.intro_start is not None
+            and self._player.playback_time is not None
+            and self._player.playback_time > self._video.intro_start
+            and self._player.playback_time < self._video.intro_end):
+            
+            if not self.is_in_intro:
+                if settings.skip_intro_always and not self.intro_has_triggered:
+                    self.intro_has_triggered = True
+                    self.skip_intro()
+                    self._player.show_text("Skipped Intro", 3000, 1)
+                elif settings.skip_intro_prompt:
+                    self._player.show_text("Seek to Skip Intro", 3000, 1)
+            self.is_in_intro = True
+        else:
+            self.is_in_intro = False
+
         while not self.evt_queue.empty():
             func, args = self.evt_queue.get()
             func(*args)
@@ -267,6 +300,8 @@ class PlayerManager(object):
             self._player.fs = True
         self._player.force_media_title = video.get_proper_title()
         self._video  = video
+        self.is_in_intro = False
+        self.intro_has_triggered = False
         self.update_subtitle_visuals(False)
         self.upd_player_hide()
         self.external_subtitles = {}
@@ -339,7 +374,10 @@ class PlayerManager(object):
         Seek to ``offset`` seconds
         """
         if not self._player.playback_abort:
-            self._player.playback_time = offset
+            if self.is_in_intro and offset > self._player.playback_time:
+                self.skip_intro()
+            else:
+                self._player.playback_time = offset
         self.timeline_handle()
 
     @synchronous('_lock')

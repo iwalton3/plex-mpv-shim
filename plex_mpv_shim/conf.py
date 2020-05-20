@@ -67,6 +67,8 @@ class Settings(object):
         "seek_down":            -60,
         "seek_right":           5,
         "seek_left":            -5,
+        "skip_intro_always":    False,
+        "skip_intro_prompt":    True,
     }
 
     def __getattr__(self, name):

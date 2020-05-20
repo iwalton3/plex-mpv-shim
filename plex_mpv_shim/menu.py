@@ -347,14 +347,17 @@ class OSDMenu(object):
 
     def preferences_menu(self):
         self.put_menu("Preferences", [
-            self.get_settings_toggle("Adaptive Transcode", "adaptive_transcode"),
-            self.get_settings_toggle("Always Transcode", "always_transcode"),
-            self.get_settings_toggle("Limit Direct Play", "direct_limit"),
-            self.get_settings_toggle("Auto Play", "auto_play"),
+            self.get_settings_toggle("Always Skip Intros", "skip_intro_always"),
+            self.get_settings_toggle("Ask to Skip Intros", "skip_intro_prompt"),
             ("Transcode Quality: {0:0.1f} Mbps".format(settings.transcode_kbps/1000), self.transcode_settings_menu),
             ("Subtitle Size: {0}".format(settings.subtitle_size), self.subtitle_size_menu),
             ("Subtitle Position: {0}".format(settings.subtitle_position), self.subtitle_position_menu),
             ("Subtitle Color: {0}".format(self.get_subtitle_color(settings.subtitle_color)), self.subtitle_color_menu),
+            self.get_settings_toggle("Auto Play", "auto_play"),
+            self.get_settings_toggle("Always Transcode", "always_transcode"),
+            self.get_settings_toggle("Adaptive Transcode", "adaptive_transcode"),
+            self.get_settings_toggle("Always Transcode", "always_transcode"),
+            self.get_settings_toggle("Limit Direct Play", "direct_limit"),
             self.get_settings_toggle("Auto Fullscreen", "fullscreen"),
             self.get_settings_toggle("Media Key Seek", "media_key_seek"),
         ])

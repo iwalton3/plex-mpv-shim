@@ -36,12 +36,23 @@ class Video(object):
         self.trs_aid       = None
         self.trs_sid       = None
         self.trs_ovr       = None
+        self.intro_start   = None
+        self.intro_end     = None
 
         if media:
             self.select_media(media, part)
 
         if not self._media_node:
             self.select_best_media(part)
+
+        try:
+            marker = self.node.find("./Marker[@type='intro']")
+            if marker is not None:
+                self.intro_start = float(marker.get('startTimeOffset')) / 1e3
+                self.intro_end = float(marker.get('endTimeOffset')) / 1e3
+                log.info("Intro Detected: {0} - {1}".format(self.intro_start, self.intro_end))
+        except:
+            log.error("Could not detect intro.", exc_info=True)
 
         self.map_streams()
 
@@ -445,6 +456,13 @@ class XMLCollection(object):
 
 class Media(XMLCollection):
     def __init__(self, url, series=None, seq=None, play_queue=None, play_queue_xml=None):
+        # Include Markers
+        if "?" in url:
+            sep = "&"
+        else:
+            sep = "?"
+        url = url + sep + "includeMarkers=1"
+        
         XMLCollection.__init__(self, url)
         self.video = self.tree.find('./Video')
         self.is_tv = self.video.get("type") == "episode"

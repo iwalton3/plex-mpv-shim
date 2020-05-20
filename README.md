@@ -177,6 +177,8 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
     - Options: fatal, error, warn, info, v, debug, trace
  - `idle_when_paused` - Consider the player idle when paused. Default: `false`
  - `stop_idle` - Stop the player when idle. (Requires `idle_when_paused`.) Default: `false`
+ - `skip_intro_always` - Always skip intros, without asking. Default: `false`
+ - `skip_intro_prompt` - Prompt to skip intro via seeking. Default: `true`
 
 ### MPV Configuration
 
