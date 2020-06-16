@@ -28,6 +28,8 @@ from .media import Media
 from .player import playerManager
 from .subscribers import remoteSubscriberManager, RemoteSubscriber
 from .timeline import timelineManager
+import locale
+locale.setlocale(locale.LC_TIME, 'en_GB.utf8')
 
 log = logging.getLogger("client")
 
