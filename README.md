@@ -202,6 +202,14 @@ under Settings > Control options. Adjust the `svp_url` and `svp_socket` settings
     - Default on Windows: `mpvpipe`
     - Default on other platforms: `/tmp/mpvsocket`
 
+Currently on Windows the built-in MPV does now work with SVP. You must download MPV yourself.
+
+ - Download the latest MPV build [from here](https://sourceforge.net/projects/mpv-player-windows/files/64bit/).
+ - Follow the [vapoursynth instructions](https://github.com/shinchiro/mpv-winbuild-cmake/wiki/Setup-vapoursynth-for-mpv).
+     - Make sure to use the latest Python, not Python 3.7.
+ - In the config file, set `mpv_ext` to `true` and `mpv_ext_path` to the path to `mpv.exe`.
+     - Make sure to use two backslashes per each backslash in the path.
+
 ### Other Configuration Options
 
  - `player_name` - The name of the player that appears in the cast menu. Initially set from your hostname.
