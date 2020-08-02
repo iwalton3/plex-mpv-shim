@@ -28,10 +28,14 @@ def get_profiles():
     profiles = {}
     for profile_id in profile_ids:
         profile_id = profile_id.replace("profiles.", "")
+        if profile_id == "predef":
+            continue
         if profile_id == "P10000001_1001_1001_1001_100000000001":
             profile_name = "Automatic"
         else:
             profile_name = simple_request("profiles.{0}.title".format(profile_id))
+        if simple_request("profiles.{0}.on".format(profile_id)) == "false":
+            continue
         profile_guid = "{" + profile_id[1:].replace("_", "-") + "}"
         profiles[profile_guid] = profile_name
     return profiles
