@@ -92,7 +92,7 @@ class SVPManager:
             # This actually *adds* another ipc server.
             playerManager._player.input_ipc_server = socket
         
-        if not is_svp_alive():
+        if settings.svp_enable and not is_svp_alive():
             log.error("SVP is not reachable. Please make sure you have the API enabled.")
     
     def is_available(self):
