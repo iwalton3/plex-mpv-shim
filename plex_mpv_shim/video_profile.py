@@ -109,7 +109,11 @@ class VideoProfileManager:
         log.info("Unloading shader profile.")
         self.playerManager._player.glsl_shaders = []
         for setting in self.used_settings:
-            setattr(self.playerManager._player, setting, self.defaults[setting])
+            try:
+                value = self.defaults[setting]
+                setattr(self.playerManager._player, setting, value)
+            except Exception:
+                log.warning("Default setting {0} value {1} is invalid.".format(setting, value))
         self.current_profile = None
 
     def menu_handle(self):
