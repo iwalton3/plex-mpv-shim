@@ -1,1 +1,2 @@
 include plex_mpv_shim/systray.png
+recursive-include plex_mpv_shim/default_shader_pack *

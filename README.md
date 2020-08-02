@@ -433,4 +433,4 @@ and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 4. Extract the `mpv-1.dll` from the file and move it to the `plex-mpv-shim` folder.
 5. Open a regular `cmd` prompt. Navigate to the `plex-mpv-shim` folder.
 6. If you would like the shader pack included, [download it](https://github.com/iwalton3/default-shader-pack) and put the contents into `plex_mpv_shim\default_shader_pack`.
-7. Run `pyinstaller -wF --add-binary "mpv-1.dll;." --add-binary "plex_mpv_shim\systray.png;." --icon media.ico run.py`.
+7. Run `pyinstaller -wF --add-binary "mpv-1.dll;." --add-data "plex_mpv_shim\default_shader_pack;plex_mpv_shim\default_shader_pack" --add-binary "plex_mpv_shim\systray.png;." --icon media.ico run.py`.
