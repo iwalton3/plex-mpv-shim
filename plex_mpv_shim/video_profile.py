@@ -62,11 +62,11 @@ class VideoProfileManager:
     def process_setting_group(self, group_name, settings_to_apply, shaders_to_apply):
         group = self.groups[group_name]
         for key, value in group.get("settings", []):
-            if key in self.revert_ignore:
-                continue
             if key not in self.defaults:
-                raise MPVSettingError("Cannot use setting group {0} due to MPV not supporting {1}".format(group_name, key))
-            self.used_settings.add(key)
+                if key not in self.revert_ignore:
+                    raise MPVSettingError("Cannot use setting group {0} due to MPV not supporting {1}".format(group_name, key))
+            else:
+                self.used_settings.add(key)
             settings_to_apply.append((key, value))
         for shader in group.get("shaders", []):
             shaders_to_apply.append(os.path.join(self.shader_pack, "shaders", shader))
