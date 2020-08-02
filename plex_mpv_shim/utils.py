@@ -5,6 +5,7 @@ import socket
 import ipaddress
 import uuid
 import re
+import sys
 
 from .conf import settings
 from datetime import datetime
@@ -148,3 +149,13 @@ def mpv_color_to_plex(color):
 
 def plex_color_to_mpv(color):
     return '#FF'+color.upper()[1:]
+
+def get_resource(*path):
+    # Detect if bundled via pyinstaller.
+    # From: https://stackoverflow.com/questions/404744/
+    if getattr(sys, '_MEIPASS', False):
+        application_path = os.path.join(sys._MEIPASS, "plex_mpv_shim")
+    else:
+        application_path = os.path.dirname(os.path.abspath(__file__))
+
+    return os.path.join(application_path, *path)
