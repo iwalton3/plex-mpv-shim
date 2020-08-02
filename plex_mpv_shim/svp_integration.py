@@ -3,6 +3,7 @@ import urllib.request
 import urllib.error
 import logging
 import sys
+import time
 
 log = logging.getLogger('svp_integration')
 
@@ -108,14 +109,16 @@ class SVPManager:
             set_disabled(True)
         else:
             set_active_profile(profile_id)
-        # Need to re-render menu.
+        # Need to re-render menu. SVP has a race condition so we wait a second.
+        time.sleep(1)
         self.menu.menu_action("back")
         self.menu_action()
 
     def menu_set_enabled(self):
         set_disabled(False)
         
-        # Need to re-render menu.
+        # Need to re-render menu. SVP has a race condition so we wait a second.
+        time.sleep(1)
         self.menu.menu_action("back")
         self.menu_action()
 
