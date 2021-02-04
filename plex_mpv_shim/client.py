@@ -13,6 +13,7 @@ from email.utils import formatdate
 from http.server import HTTPServer
 from http.server import SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
+from .media import MediaType
 from .utils import upd_token, sanitize_msg, plex_color_to_mpv
 from .conf import settings
 
@@ -300,24 +301,30 @@ class HttpHandler(SimpleHTTPRequestHandler):
         offset      = int(int(arguments.get("offset",   0))/1e3)
         url         = urllib.parse.urljoin("%s://%s:%s" % (protocol, address, port), key)
         playQueue   = arguments.get("containerKey", None)
+        mediaType   = arguments.get("type", "video")
+
+        if mediaType == "video":
+            parsed_media_type = MediaType.VIDEO
+        elif mediaType == "music":
+            parsed_media_type = MediaType.MUSIC
 
         token = arguments.get("token", None)
         if token:
             upd_token(address, token)
 
         if settings.enable_play_queue and playQueue.startswith("/playQueue"):
-            media = Media(url, play_queue=playQueue)
+            media = Media(url, media_type=parsed_media_type, play_queue=playQueue)
         else:
-            media = Media(url)
+            media = Media(url, media_type=parsed_media_type)
 
         log.debug("HttpHandler::playMedia %s" % media)
 
         # TODO: Select video, media and part here based off user settings
-        video = media.get_video(0)
-        if video:
+        media_item = media.get_media_item(0)
+        if media_item:
             if settings.pre_media_cmd:
                 os.system(settings.pre_media_cmd)
-            playerManager.play(video, offset)
+            playerManager.play(media_item, offset)
             timelineManager.SendTimelineToSubscribers()
 
     def stop(self, path, arguments):

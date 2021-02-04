@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+from enum import Enum
 import logging
 import urllib.request, urllib.parse, urllib.error
 import urllib.parse
@@ -16,13 +18,62 @@ log = logging.getLogger('media')
 
 # http://192.168.0.12:32400/photo/:/transcode?url=http%3A%2F%2F127.0.0.1%3A32400%2F%3A%2Fresources%2Fvideo.png&width=75&height=75
 
-class MediaItem(object):
-    pass
+class MediaType(Enum):
+    VIDEO = "video"
+    MUSIC = "music"
 
-class Video(object):
+class MediaItem(ABC):
+    def __init__(self, media_type, node, parent):
+        self.media_type = media_type
+        self.node = node
+        self.parent = parent
+
+    @abstractmethod
+    def get_playback_url(self, offset=0):
+        pass
+
+    @abstractmethod
+    def is_multipart(self):
+        pass
+
+    def get_duration(self):
+        return self.node.get("duration")
+
+    def get_rating_key(self):
+        return self.node.get("ratingKey")
+
+    def get_attr(self, attr, default=None):
+        return self.node.get(attr, default)
+
+    def get_proper_title(self):
+        if not hasattr(self, "_title"):
+            setattr(self, "_title", self.node.get('title'))
+        return getattr(self, "_title")
+
+    def set_played(self, watched=True):
+        rating_key = self.get_rating_key()
+
+        if rating_key is None:
+            log.error("No 'ratingKey' could be found in XML from URL '%s'" % (sanitize_msg(self.parent.path.geturl())))
+            return False
+
+        if watched:
+            act = '/:/scrobble'
+        else:
+            act = '/:/unscrobble'
+
+        url  = urllib.parse.urljoin(self.parent.server_url, act)
+        data = {
+            "key":          rating_key,
+            "identifier":   "com.plexapp.plugins.library"
+        }
+
+        self.played = safe_urlopen(url, data)
+        return self.played
+
+class Video(MediaItem):
     def __init__(self, node, parent, media=0, part=0):
-        self.parent        = parent
-        self.node          = node
+        super().__init__(MediaType.VIDEO, node, parent)
         self.played        = False
         self._media        = 0
         self._media_node   = None
@@ -388,15 +439,6 @@ class Video(object):
         url = "/library/streams/{0}".format(id)
         return get_plex_url(urllib.parse.urljoin(self.parent.server_url, url))
 
-    def get_duration(self):
-        return self.node.get("duration")
-
-    def get_rating_key(self):
-        return self.node.get("ratingKey")
-
-    def get_video_attr(self, attr, default=None):
-        return self.node.get(attr, default)
-
     def update_position(self, ms):
         """
         Sets the state of the media as "playing" with a progress of ``ms`` milliseconds.
@@ -417,26 +459,72 @@ class Video(object):
         
         return safe_urlopen(url, data)
 
-    def set_played(self, watched=True):
-        rating_key = self.get_rating_key()
+class Track(MediaItem):
+    def __init__(self, node, parent, media=0, part=0):
+        super().__init__(MediaType.MUSIC, node, parent)
+        self.played        = False
+        self._media        = 0
+        self._media_node   = None
+        self._part         = 0
+        self._part_node    = None
+        self.is_transcode  = False
+        self.trs_aid       = None
+        self.trs_sid       = None
+        self.trs_ovr       = None
+        self.audio_seq     = {}
+        self.audio_uid     = {}
 
-        if rating_key is None:
-            log.error("No 'ratingKey' could be found in XML from URL '%s'" % (sanitize_msg(self.parent.path.geturl())))
+        if media:
+            self.select_media(media, part)
+
+        if not self._media_node:
+            self.select_best_media(part)
+
+        self.map_streams()
+
+    def map_streams(self):
+        if not self._part_node:
+            return
+
+        for index, stream in enumerate(self._part_node.findall("./Stream[@streamType='2']") or []):
+            self.audio_uid[index+1] = stream.attrib["id"]
+            self.audio_seq[stream.attrib["id"]] = index+1
+
+    def select_best_media(self, part=0):
+        # Audio is much easier :)
+        self.select_media(0)
+
+    def select_media(self, media, part=0):
+        node = self.node.find('./Media[%s]' % (media+1))
+        if node:
+            self._media      = media
+            self._media_node = node
+            if self.select_part(part):
+                log.debug("Track::select_media selected media %d" % media)
+                return True
+
+        log.error("Track::select_media error selecting media %d" % media)
+        return False
+
+    def select_part(self, part):
+        if self._media_node is None:
             return False
 
-        if watched:
-            act = '/:/scrobble'
-        else:
-            act = '/:/unscrobble'
+        node = self._media_node.find('./Part[%s]' % (part+1))
+        if node:
+            self._part      = part
+            self._part_node = node
+            return True
 
-        url  = urllib.parse.urljoin(self.parent.server_url, act)
-        data = {
-            "key":          rating_key,
-            "identifier":   "com.plexapp.plugins.library"
-        }
+        log.error("Track::select_media error selecting part %s" % part)
+        return False
 
-        self.played = safe_urlopen(url, data)
-        return self.played
+    def get_playback_url(self, offset=0):
+        url  = urllib.parse.urljoin(self.parent.server_url, self._part_node.get("key", ""))
+        return get_plex_url(url)
+
+    def is_multipart(self):
+        return False
 
 class XMLCollection(object):
     def __init__(self, url):
@@ -455,7 +543,7 @@ class XMLCollection(object):
         return self.path.path
 
 class Media(XMLCollection):
-    def __init__(self, url, series=None, seq=None, play_queue=None, play_queue_xml=None):
+    def __init__(self, url, series=None, seq=None, play_queue=None, play_queue_xml=None, media_type=MediaType.VIDEO):
         # Include Markers
         if "?" in url:
             sep = "&"
@@ -464,8 +552,15 @@ class Media(XMLCollection):
         url = url + sep + "includeMarkers=1"
         
         XMLCollection.__init__(self, url)
-        self.video = self.tree.find('./Video')
-        self.is_tv = self.video.get("type") == "episode"
+
+        self.media_type = media_type
+
+        if self.media_type == MediaType.VIDEO:
+            self.media_item = self.tree.find('./Video')
+            self.is_tv = self.media_item.get("type") == "episode"
+        elif self.media_type == MediaType.MUSIC:
+            self.media_item = self.tree.find('./Track')
+
         self.seq = None
         self.has_next = False
         self.has_prev = False
@@ -487,11 +582,11 @@ class Media(XMLCollection):
             else:
                 self.series = []
                 specials = []
-                series_xml = XMLCollection(self.get_path(self.video.get("grandparentKey")+"/allLeaves"))
+                series_xml = XMLCollection(self.get_path(self.media_item.get("grandparentKey")+"/allLeaves"))
                 videos = series_xml.tree.findall('./Video')
                 
                 # This part is kind of nasty, so we only try to do it once per cast session.
-                key = self.video.get('key')
+                key = self.media_item.get('key')
                 is_special = False
                 for i, video in enumerate(videos):
                     if video.get('key') == key:
@@ -511,18 +606,32 @@ class Media(XMLCollection):
 
     def upd_play_queue(self):
         if self.play_queue:
-            self.play_queue_xml = XMLCollection(self.get_path(self.play_queue))
-            videos = self.play_queue_xml.tree.findall('./Video')
-            self.series = []
+            if self.media_type == MediaType.VIDEO:
+                self.play_queue_xml = XMLCollection(self.get_path(self.play_queue))
+                videos = self.play_queue_xml.tree.findall('./Video')
+                self.series = []
 
-            key = self.video.get('key')
-            for i, video in enumerate(videos):
-                if video.get('key') == key:
-                    self.seq = i
-                self.series.append(video)
+                key = self.media_item.get('key')
+                for i, video in enumerate(videos):
+                    if video.get('key') == key:
+                        self.seq = i
+                    self.series.append(video)
 
-            self.has_next = self.seq < len(self.series) - 1
-            self.has_prev = self.seq > 0
+                self.has_next = self.seq < len(self.series) - 1
+                self.has_prev = self.seq > 0
+            elif self.media_type == MediaType.MUSIC:
+                self.play_queue_xml = XMLCollection(self.get_path(self.play_queue))
+                tracks = self.play_queue_xml.tree.findall('./Track')
+                self.series = []
+
+                key = self.media_item.get('key')
+                for i, track in enumerate(tracks):
+                    if track.get('key') == key:
+                        self.seq = i
+                    self.series.append(track)
+
+                self.has_next = self.seq < len(self.series) - 1
+                self.has_prev = self.seq > 0
 
     def get_queue_info(self):
         return {
@@ -537,34 +646,43 @@ class Media(XMLCollection):
             if self.play_queue and self.seq+2 == len(self.series):
                 self.upd_play_queue()
             next_video = self.series[self.seq+1]
-            return Media(self.get_path(next_video.get('key')), self.series, self.seq+1, self.play_queue, self.play_queue_xml)
+            return Media(self.get_path(next_video.get('key')), self.series, self.seq+1, self.play_queue, self.play_queue_xml, self.media_type)
     
     def get_prev(self):
         if self.has_prev:
             if self.play_queue and self.seq-1 == 0:
                 self.upd_play_queue()
             prev_video = self.series[self.seq-1]
-            return Media(self.get_path(prev_video.get('key')), self.series, self.seq-1, self.play_queue, self.play_queue_xml)
+            return Media(self.get_path(prev_video.get('key')), self.series, self.seq-1, self.play_queue, self.play_queue_xml, self.media_type)
 
     def get_from_key(self, key):
         if self.play_queue:
             self.upd_play_queue()
             for i, video in enumerate(self.series):
                 if video.get("key") == key:
-                    return Media(self.get_path(key), self.series, i, self.play_queue, self.play_queue_xml)
+                    return Media(self.get_path(key), self.series, i, self.play_queue, self.play_queue_xml, self.media_type)
             return None
         else:
-            return Media(self.get_path(key))
+            return Media(self.get_path(key), media_type=self.media_type)
 
-    def get_video(self, index, media=0, part=0):
-        if index == 0 and self.video:
-            return Video(self.video, self, media, part)
-        
-        video = self.tree.find('./Video[%s]' % (index+1))
-        if video:
-            return Video(video, self, media, part)
+    def get_media_item(self, index, media=0, part=0):
+        if self.media_type == MediaType.VIDEO:
+            if index == 0 and self.media_item:
+                return Video(self.media_item, self, media, part)
+            
+            video = self.tree.find('./Video[%s]' % (index+1))
+            if video:
+                return Video(video, self, media, part)
 
-        log.error("Media::get_video couldn't find video at index %s" % video)
+        elif self.media_type == MediaType.MUSIC:
+            if index == 0 and self.media_item:
+                return Track(self.media_item, self, media, part)
+            
+            track = self.tree.find('./Track[%s]' % (index+1))
+            if track:
+                return Track(track, self, media, part)
+
+        log.error("Media::get_media_item couldn't find {} at index {}".format(self.media_type, index))
 
     def get_machine_identifier(self):
         if not hasattr(self, "_machine_identifier"):
