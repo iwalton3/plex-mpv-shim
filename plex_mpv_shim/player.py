@@ -11,6 +11,7 @@ from . import conffile
 from .utils import synchronous, Timer
 from .conf import settings
 from .menu import OSDMenu
+from .media import MediaType
 
 log = logging.getLogger('player')
 mpv_log = logging.getLogger('mpv')
@@ -76,7 +77,7 @@ class PlayerManager(object):
         mpv_config = conffile.get(APP_NAME,"mpv.conf", True)
         input_config = conffile.get(APP_NAME,"input.conf", True)
         extra_options = {}
-        self._video = None
+        self._media_item = None
         self._lock = RLock()
         self._finished_lock = Lock()
         self.last_update = Timer()
@@ -225,14 +226,14 @@ class PlayerManager(object):
         # Fires between episodes.
         @self._player.property_observer('eof-reached')
         def handle_end(_name, reached_end):
-            if self._video and reached_end:
+            if self._media_item and reached_end:
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
 
         # Fires at the end.
         @self._player.event_callback('idle')
         def handle_end_idle(event):
-            if self._video:
+            if self._media_item:
                 has_lock = self._finished_lock.acquire(False)
                 self.put_task(self.finished_callback, has_lock)
 
@@ -251,17 +252,18 @@ class PlayerManager(object):
             self.timeline_trigger.set()
 
     def skip_intro(self):
-        self._player.playback_time = self._video.intro_end
-        self.timeline_handle()
-        self.is_in_intro = False
+        if self._media_item.media_type == MediaType.VIDEO:
+            self._player.playback_time = self._media_item.intro_end
+            self.timeline_handle()
+            self.is_in_intro = False
 
     @synchronous('_lock')
     def update(self):
         if ((settings.skip_intro_always or settings.skip_intro_prompt)
-            and self._video is not None and self._video.intro_start is not None
+            and self._media_item is not None and self._media_item.media_type == MediaType.VIDEO and self._media_item.intro_start is not None
             and self._player.playback_time is not None
-            and self._player.playback_time > self._video.intro_start
-            and self._player.playback_time < self._video.intro_end):
+            and self._player.playback_time > self._media_item.intro_start
+            and self._player.playback_time < self._media_item.intro_end):
             
             if not self.is_in_intro:
                 if settings.skip_intro_always and not self.intro_has_triggered:
@@ -277,20 +279,20 @@ class PlayerManager(object):
         while not self.evt_queue.empty():
             func, args = self.evt_queue.get()
             func(*args)
-        if self._video and not self._player.playback_abort:
+        if self._media_item and not self._player.playback_abort:
             if not self.is_paused():
                 self.last_update.restart()
 
-    def play(self, video, offset=0):
-        url = video.get_playback_url()
+    def play(self, media_item, offset=0):
+        url = media_item.get_playback_url()
         if not url:        
             log.error("PlayerManager::play no URL found")
             return
 
-        self._play_media(video, url, offset)
+        self._play_media(media_item, url, offset)
 
     @synchronous('_lock')
-    def _play_media(self, video, url, offset=0):
+    def _play_media(self, media_item, url, offset=0):
         self.url = url
         self.menu.hide_menu()
 
@@ -301,8 +303,8 @@ class PlayerManager(object):
         self._player.wait_for_property("duration")
         if settings.fullscreen:
             self._player.fs = True
-        self._player.force_media_title = video.get_proper_title()
-        self._video  = video
+        self._player.force_media_title = media_item.get_proper_title()
+        self._media_item  = media_item
         self.is_in_intro = False
         self.intro_has_triggered = False
         self.update_subtitle_visuals(False)
@@ -316,14 +318,14 @@ class PlayerManager(object):
         if offset > 0:
             self._player.playback_time = offset
 
-        if not video.is_transcode:
-            audio_idx = video.get_audio_idx()
+        if media_item.media_type == MediaType.VIDEO and not media_item.is_transcode:
+            audio_idx = media_item.get_audio_idx()
             if audio_idx is not None:
                 log.debug("PlayerManager::play selecting audio stream index=%s" % audio_idx)
                 self._player.audio = audio_idx
 
-            sub_idx = video.get_subtitle_idx()
-            xsub_id = video.get_external_sub_id()
+            sub_idx = media_item.get_subtitle_idx()
+            xsub_id = media_item.get_external_sub_id()
             if sub_idx is not None:
                 log.debug("PlayerManager::play selecting subtitle index=%s" % sub_idx)
                 self._player.sub = sub_idx
@@ -344,15 +346,17 @@ class PlayerManager(object):
 
     @synchronous('_lock')
     def stop(self, playend=False):
-        if not playend and (not self._video or self._player.playback_abort):
+        if not playend and (not self._media_item or self._player.playback_abort):
             self.exec_stop_cmd()
             return
 
         if not playend:
-            log.debug("PlayerManager::stop stopping playback of %s" % self._video)
+            log.debug("PlayerManager::stop stopping playback of %s" % self._media_item)
 
-        self._video.terminate_transcode()
-        self._video  = None
+        if self._media_item.media_type == MediaType.VIDEO:
+            self._media_item.terminate_transcode()
+
+        self._media_item  = None
         self._player.command("stop")
         self._player.pause = False
         self.timeline_handle()
@@ -409,27 +413,27 @@ class PlayerManager(object):
 
     @synchronous('_lock')
     def finished_callback(self, has_lock):
-        if not self._video:
+        if not self._media_item:
             return
        
-        self._video.set_played()
+        self._media_item.set_played()
 
-        if self._video.is_multipart():
+        if self._media_item.is_multipart():
             if has_lock:
                 log.debug("PlayerManager::finished_callback media is multi-part, checking for next part")
                 # Try to select the next part
                 next_part = self.__part+1
-                if self._video.select_part(next_part):
+                if self._media_item.select_part(next_part):
                     self.__part = next_part
                     log.debug("PlayerManager::finished_callback starting next part")
-                    self.play(self._video)
+                    self.play(self._media_item)
             else:
                 log.debug("PlayerManager::finished_callback No lock, skipping...")
         
-        elif self._video.parent.has_next and settings.auto_play:
+        elif self._media_item.parent.has_next and settings.auto_play:
             if has_lock:
                 log.debug("PlayerManager::finished_callback starting next episode")
-                self.play(self._video.parent.get_next().get_video(0))
+                self.play(self._media_item.parent.get_next().get_media_item(0))
             else:
                 log.debug("PlayerManager::finished_callback No lock, skipping...")
 
@@ -441,75 +445,75 @@ class PlayerManager(object):
 
     @synchronous('_lock')
     def watched_skip(self):
-        if not self._video:
+        if not self._media_item:
             return
 
-        self._video.set_played()
+        self._media_item.set_played()
         self.play_next()
 
     @synchronous('_lock')
     def unwatched_quit(self):
-        if not self._video:
+        if not self._media_item:
             return
 
-        self._video.set_played(False)
+        self._media_item.set_played(False)
         self.stop()
 
     @synchronous('_lock')
     def play_next(self):
-        if self._video.parent.has_next:
-            self.play(self._video.parent.get_next().get_video(0))
+        if self._media_item.parent.has_next:
+            self.play(self._media_item.parent.get_next().get_media_item(0))
             return True
         return False
 
     @synchronous('_lock')
     def skip_to(self, key):
-        media = self._video.parent.get_from_key(key)
+        media = self._media_item.parent.get_from_key(key)
         if media:
-            self.play(media.get_video(0))
+            self.play(media.get_media_item(0))
             return True
         return False
 
     @synchronous('_lock')
     def play_prev(self):
-        if self._video.parent.has_prev:
-            self.play(self._video.parent.get_prev().get_video(0))
+        if self._media_item.parent.has_prev:
+            self.play(self._media_item.parent.get_prev().get_media_item(0))
             return True
         return False
 
     @synchronous('_lock')
     def restart_playback(self):
         current_time = self._player.playback_time
-        self.play(self._video, current_time)
+        self.play(self._media_item, current_time)
         return True
 
     @synchronous('_lock')
-    def get_video_attr(self, attr, default=None):
-        if self._video:
-            return self._video.get_video_attr(attr, default)
+    def get_media_item_attr(self, attr, default=None):
+        if self._media_item:
+            return self._media_item.get_media_item_attr(attr, default)
         return default
 
     @synchronous('_lock')
     def set_streams(self, audio_uid, sub_uid):
-        if not self._video.is_transcode:
+        if not self._media_item.is_transcode:
             if audio_uid is not None:
                 log.debug("PlayerManager::play selecting audio stream index=%s" % audio_uid)
-                self._player.audio = self._video.audio_seq[audio_uid]
+                self._player.audio = self._media_item.audio_seq[audio_uid]
 
             if sub_uid == '0':
                 log.debug("PlayerManager::play selecting subtitle stream (none)")
                 self._player.sub = 'no'
             elif sub_uid is not None:
                 log.debug("PlayerManager::play selecting subtitle stream index=%s" % sub_uid)
-                if sub_uid in self._video.subtitle_seq:
-                    self._player.sub = self._video.subtitle_seq[sub_uid]
+                if sub_uid in self._media_item.subtitle_seq:
+                    self._player.sub = self._media_item.subtitle_seq[sub_uid]
                 else:
                     log.debug("PlayerManager::play selecting external subtitle id=%s" % sub_uid)
                     self.load_external_sub(sub_uid)
 
-        self._video.set_streams(audio_uid, sub_uid)
+        self._media_item.set_streams(audio_uid, sub_uid)
 
-        if self._video.is_transcode:
+        if self._media_item.is_transcode:
             self.restart_playback()
         self.timeline_handle()
     
@@ -519,7 +523,7 @@ class PlayerManager(object):
             self._player.sub = self.external_subtitles[sub_id]
         else:
             try:
-                sub_url = self._video.get_external_sub(sub_id)
+                sub_url = self._media_item.get_external_sub(sub_id)
                 if settings.log_decisions:
                     log.debug("Load External Subtitle: {0}".format(sub_url))
                 self._player.sub_add(sub_url)
@@ -529,22 +533,22 @@ class PlayerManager(object):
                 log.debug("PlayerManager::could not load external subtitle")
 
     def get_track_ids(self):
-        if self._video.is_transcode:
-            return self._video.get_transcode_streams()
+        if self._media_item.is_transcode:
+            return self._media_item.get_transcode_streams()
         else:
             aid, sid = None, None
-            if self._player.sub != 'no':
+            if self._player.sub and self._player.sub != 'no':
                 if self._player.sub in self.external_subtitles_rev:
                     sid = self.external_subtitles_rev.get(self._player.sub, '')
                 else:
-                    sid = self._video.subtitle_uid.get(self._player.sub, '')
+                    sid = self._media_item.subtitle_uid.get(self._player.sub, '')
 
             if self._player.audio != 'no':
-                aid = self._video.audio_uid.get(self._player.audio, '')
+                aid = self._media_item.audio_uid.get(self._player.audio, '')
             return aid, sid
 
     def update_subtitle_visuals(self, restart_transcode=True):
-        if self._video.is_transcode:
+        if self._media_item.is_transcode:
             if restart_transcode:
                 self.restart_playback()
         else:
@@ -554,7 +558,7 @@ class PlayerManager(object):
         self.timeline_handle()
 
     def upd_player_hide(self):
-        self._player.keep_open = self._video.parent.has_next
+        self._player.keep_open = self._media_item.parent.has_next
     
     def terminate(self):
         self.stop()
