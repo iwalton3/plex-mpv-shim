@@ -239,7 +239,11 @@ class STrayProcess(Process):
         icon = Icon(APP_NAME, menu=Menu(*menu_items))
         icon.icon = Image.open(icon_file)
         self.icon_stop = icon.stop
-        icon.run()
+
+        def setup(icon: Icon):
+            icon.visible = True
+
+        icon.run(setup=setup)
         self.r_queue.put(("die", None))
 
 userInterface = UserInterface()
