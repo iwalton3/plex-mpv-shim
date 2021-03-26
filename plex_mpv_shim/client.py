@@ -384,7 +384,7 @@ class HttpHandler(SimpleHTTPRequestHandler):
         playerManager.set_streams(audioStreamID, subtitleStreamID)
 
     def refreshPlayQueue(self, path, arguments):
-        playerManager._video.parent.upd_play_queue()
+        playerManager._media_item.parent.upd_play_queue()
         playerManager.upd_player_hide()
         timelineManager.SendTimelineToSubscribers()
 

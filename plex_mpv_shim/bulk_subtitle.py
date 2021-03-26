@@ -27,7 +27,7 @@ def process_series(mode, url, player, m_raid=None, m_rsid=None):
     messages.clear()
     show_text = player._player.show_text
     c_aid, c_sid = None, None
-    c_pid = player._video._part_node.get("id")
+    c_pid = player._media_item._part_node.get("id")
 
     success_ct = 0
     partial_ct = 0
@@ -105,7 +105,7 @@ def process_series(mode, url, player, m_raid=None, m_rsid=None):
     time.sleep(3)
     if c_aid:
         render_message("Setting Current...", show_text)
-        if player._video.is_transcode:
+        if player._media_item.is_transcode:
             player.put_task(player.set_streams, c_aid, c_sid)
             player.timeline_handle()
         else:
