@@ -17,7 +17,7 @@ jobs:
       run: |
         curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20210404-git-dd86f19.7z/download > mpv.7z
         7z x mpv.7z
-        pip install .
+        pip install . pywin32 pyinstaller
       shell: bash
     - name: Build
       run: |
