@@ -1,0 +1,25 @@
+name: build
+
+on:
+  push:
+    branches:
+      - master
+jobs:
+  build-win64:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20210404-git-dd86f19.7z/download > mpv.7z
+        7z x mpv.7z
+      shell: bash
+    - name: Build
+      run: |
+        .\build.bat
+      shell: cmd
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows
+        path: ${{ github.workspace }}/build/run.exe
