@@ -28,4 +28,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: windows
-        path: ${{ github.workspace }}/build/run.exe
+        path: ${{ github.workspace }}/dist/run.exe
