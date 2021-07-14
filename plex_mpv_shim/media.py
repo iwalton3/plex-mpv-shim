@@ -536,8 +536,13 @@ class XMLCollection(object):
         self.tree       = et.parse(urllib.request.urlopen(get_plex_url(url)))
 
     def get_path(self, path):
-        return urllib.parse.urlunparse((self.path.scheme, self.path.netloc, path,
-            self.path.params, self.path.query, self.path.fragment))
+        parsed_url = urllib.parse.urlparse(path)
+        query = urllib.parse.parse_qs(parsed_url.query)
+        query.update(urllib.parse.parse_qs(self.path.query))
+        query = urllib.parse.urlencode(query, doseq=True)
+
+        return urllib.parse.urlunparse((self.path.scheme, self.path.netloc, parsed_url.path,
+            self.path.params, query, self.path.fragment))
 
     def __str__(self):
         return self.path.path
