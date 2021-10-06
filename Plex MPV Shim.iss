@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Plex MPV Shim"
-#define MyAppVersion "1.10.1"
+#define MyAppVersion "1.10.2"
 #define MyAppPublisher "Ian Walton"
 #define MyAppURL "https://github.com/iwalton3/plex-mpv-shim"
 #define MyAppExeName "run.exe"
