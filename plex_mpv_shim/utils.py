@@ -1,3 +1,4 @@
+import certifi
 import logging
 import os
 import urllib.request, urllib.parse, urllib.error
@@ -126,7 +127,7 @@ def safe_urlopen(url, data=None, quiet=False):
     url = get_plex_url(url, data, quiet)
 
     try:
-        page = urllib.request.urlopen(url)
+        page = urllib.request.urlopen(url, cafile=certifi.where())
         if page.code == 200:
             return True
         log.error("Error opening URL '%s': page returned %d" % (sanitize_msg(url),
