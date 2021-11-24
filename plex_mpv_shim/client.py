@@ -1,3 +1,4 @@
+import certifi
 import datetime
 import json
 import logging
