@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='plex-mpv-shim',
-    version='1.10.2',
+    version='1.10.3',
     author="Ian Walton",
     author_email="iwalton3@gmail.com",
     description="Cast media from Plex Mobile and Web apps to MPV. (Unofficial)",
@@ -25,7 +25,7 @@ setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    install_requires=['python-mpv', 'requests', 'python-mpv-jsonipc>=1.1.8'],
+    install_requires=['python-mpv', 'requests', 'python-mpv-jsonipc>=1.1.8', 'certifi'],
     include_package_data=True
 
 )
