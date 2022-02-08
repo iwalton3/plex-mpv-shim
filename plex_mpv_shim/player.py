@@ -6,6 +6,7 @@ import urllib.parse
 
 from threading import RLock, Lock
 from queue import Queue
+from collections import OrderedDict
 
 from . import conffile
 from .utils import synchronous, Timer
@@ -74,9 +75,7 @@ class PlayerManager(object):
     ``media`` are thread safe.
     """
     def __init__(self):
-        mpv_config = conffile.get(APP_NAME,"mpv.conf", True)
-        input_config = conffile.get(APP_NAME,"input.conf", True)
-        extra_options = {}
+        mpv_options = OrderedDict()
         self._media_item = None
         self._lock = RLock()
         self._finished_lock = Lock()
@@ -92,16 +91,22 @@ class PlayerManager(object):
         self.intro_has_triggered = False
 
         if is_using_ext_mpv:
-            extra_options = {
-                "start_mpv": settings.mpv_ext_start,
-                "ipc_socket": settings.mpv_ext_ipc,
-                "mpv_location": settings.mpv_ext_path,
-                "player-operation-mode": "cplayer"
-            }
+            mpv_options.update(
+                {
+                    "start_mpv": settings.mpv_ext_start,
+                    "ipc_socket": settings.mpv_ext_ipc,
+                    "mpv_location": settings.mpv_ext_path,
+                    "player-operation-mode": "cplayer"
+                }
+            )
+
+        if not (settings.mpv_ext and settings.mpv_ext_no_ovr):
+            mpv_options["include"] = conffile.get(APP_NAME, "mpv.conf", True)
+            mpv_options["input_conf"] = conffile.get(APP_NAME, "input.conf", True)
+
         self._player = mpv.MPV(input_default_bindings=True, input_vo_keyboard=True,
-                               input_media_keys=True, include=mpv_config, input_conf=input_config,
-                               log_handler=mpv_log_handler, loglevel=settings.mpv_log_level,
-                               **extra_options)
+                               input_media_keys=True, log_handler=mpv_log_handler,
+                               loglevel=settings.mpv_log_level, **mpv_options)
         self.menu = OSDMenu(self)
         if hasattr(self._player, 'osc'):
             self._player.osc = settings.enable_osc
