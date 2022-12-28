@@ -420,7 +420,7 @@ To install the CLI version:
 
 1. Install brew. ([Instructions](https://brew.sh/))
 2. Install python3 and mpv. `brew install python mpv`
-3. Install jellyfin-mpv-shim. `pip3 install --upgrade plex-mpv-shim`
+3. Install plex-mpv-shim. `pip3 install --upgrade plex-mpv-shim`
 4. Run `plex-mpv-shim`.
 
 If you'd like to install the GUI version, you need a working copy of tkinter.
@@ -429,7 +429,7 @@ If you'd like to install the GUI version, you need a working copy of tkinter.
 2. Install TK and mpv. `brew install tcl-tk mpv`
 3. Install python3 with TK support. `FLAGS="-I$(brew --prefix tcl-tk)/include" pyenv install 3.8.1`
 4. Set this python3 as the default. `pyenv global 3.8.1`
-5. Install jellyfin-mpv-shim and pystray. `pip3 install --upgrade plex-mpv-shim pystray`
+5. Install plex-mpv-shim and pystray. `pip3 install --upgrade plex-mpv-shim pystray`
 6. Run `plex-mpv-shim`.
 
 ## Building on Windows
