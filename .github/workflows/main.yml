@@ -9,11 +9,10 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Setup Python 3.7
+    - name: Setup Python 3.9
       uses: actions/setup-python@v1
       with:
-        python-version: 3.7
-    - name: Install dependencies
+        python-version: 3.9
       run: |
         curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20230205-git-e439ddc.7z/download > mpv.7z
         7z x mpv.7z
