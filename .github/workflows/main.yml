@@ -15,8 +15,9 @@ jobs:
         python-version: 3.7
     - name: Install dependencies
       run: |
-        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20210404-git-dd86f19.7z/download > mpv.7z
+        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20230205-git-e439ddc.7z/download > mpv.7z
         7z x mpv.7z
+        mv libmpv-2.dll mpv-2.dll
         pip install . pywin32 pyinstaller pystray
         ./gen_pkg.sh --skip-build
       shell: bash
