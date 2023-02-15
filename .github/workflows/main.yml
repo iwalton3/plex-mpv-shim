@@ -13,6 +13,7 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.9
+    - name: Install dependencies
       run: |
         curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20230205-git-e439ddc.7z/download > mpv.7z
         7z x mpv.7z
