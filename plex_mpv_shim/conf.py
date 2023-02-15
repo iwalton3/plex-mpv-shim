@@ -77,6 +77,7 @@ class Settings(object):
         "svp_enable":           False,
         "svp_url":              "http://127.0.0.1:9901/",
         "svp_socket":           None,
+        "shader_pack_subtype":  "lq",
     }
 
     def __getattr__(self, name):

@@ -20,6 +20,7 @@ class VideoProfileManager:
         self.playerManager = playerManager
         self.used_settings = set()
         self.current_profile = None
+        self.profile_subtypes = []
 
         self.load_shader_pack()
     
@@ -32,15 +33,24 @@ class VideoProfileManager:
             if not os.path.exists(self.shader_pack):
                 shutil.copytree(shader_pack_builtin, self.shader_pack)
         
-        if not os.path.exists(os.path.join(self.shader_pack, "pack.json")):
-            raise FileNotFoundError("Could not find default shader pack.")
+        pack_name = "pack-next.json"
+        if not os.path.exists(os.path.join(self.shader_pack, pack_name)):
+            pack_name = "pack.json"
 
-        with open(os.path.join(self.shader_pack, "pack.json")) as fh:
+            if not os.path.exists(os.path.join(self.shader_pack, pack_name)):
+                raise FileNotFoundError("Could not find default shader pack.")
+
+        with open(os.path.join(self.shader_pack, pack_name)) as fh:
             pack = json.load(fh)
             self.default_groups = pack.get("default-setting-groups") or []
             self.profiles = pack.get("profiles") or {}
             self.groups = pack.get("setting-groups") or {}
             self.revert_ignore = set(pack.get("setting-revert-ignore") or [])
+
+            self.profile_subtypes = set()
+            for profile in self.profiles.values():
+                for subtype in profile.get("subtype", []):
+                    self.profile_subtypes.add(subtype)
 
         self.defaults = {}
         for group in self.groups.values():
@@ -137,6 +147,10 @@ class VideoProfileManager:
             ("None (Disabled)", self.menu_handle, None)
         ]
         for i, (profile_name, profile) in enumerate(self.profiles.items()):
+            if (profile.get("subtype", None) is not None and
+                not settings.shader_pack_subtype in profile["subtype"]):
+                continue
+
             profile_option_list.append(
                 (profile["displayname"], self.menu_handle, profile_name)
             )

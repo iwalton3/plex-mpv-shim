@@ -58,10 +58,11 @@ class OSDMenu(object):
         self.original_osd_size = playerManager._player.osd_font_size
 
         self.profile_menu = None
+        self.profile_manager = None
         if settings.shader_pack_enable:
             try:
-                profile_manager = VideoProfileManager(self, playerManager)
-                self.profile_menu = profile_manager.menu_action
+                self.profile_manager = VideoProfileManager(self, playerManager)
+                self.profile_menu = self.profile_manager.menu_action
             except Exception:
                 log.error("Could not load profile manager.", exc_info=True)
         
@@ -372,7 +373,7 @@ class OSDMenu(object):
         ])
 
     def preferences_menu(self):
-        self.put_menu("Preferences", [
+        options = [
             self.get_settings_toggle("Always Skip Intros", "skip_intro_always"),
             self.get_settings_toggle("Ask to Skip Intros", "skip_intro_prompt"),
             ("Transcode Quality: {0:0.1f} Mbps".format(settings.transcode_kbps/1000), self.transcode_settings_menu),
@@ -386,7 +387,38 @@ class OSDMenu(object):
             self.get_settings_toggle("Limit Direct Play", "direct_limit"),
             self.get_settings_toggle("Auto Fullscreen", "fullscreen"),
             self.get_settings_toggle("Media Key Seek", "media_key_seek"),
-        ])
+        ]
+
+        if self.profile_menu is not None:
+            options.append(
+                (
+                    "Video Profile Subtype: {0}".format(
+                        settings.shader_pack_subtype
+                    ),
+                    self.shader_pack_subtype_menu,
+                ),
+            )
+
+        self.put_menu("Preferences", options)
+
+    def shader_pack_subtype_menu(self):
+        self.put_menu(
+            "Video Profile Subtype",
+            [
+                (option, self.shader_pack_subtype_handle)
+                for option in self.profile_manager.profile_subtypes
+            ],
+        )
+
+    def shader_pack_subtype_handle(self):
+        option_value = self.menu_list[self.menu_selection][0]
+        settings.shader_pack_subtype = option_value
+        settings.save()
+
+        # Need to re-render preferences menu.
+        for i in range(2):
+            self.menu_action("back")
+        self.video_preferences_menu()
 
     def unwatched_menu_handle(self):
         self.playerManager.put_task(self.playerManager.unwatched_quit)
