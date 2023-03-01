@@ -138,7 +138,18 @@ def safe_urlopen(url, data=None, quiet=False):
     return False
 
 def is_local_domain(domain):
-    return ipaddress.ip_address(socket.gethostbyname(domain)).is_private
+    try:
+        return ipaddress.ip_address(socket.gethostbyname(domain)).is_private
+    except socket.gaierror as e:
+        if e.errno == socket.EAI_NODATA:
+            try:
+                # try checking for an IPv6 address
+                return ipaddress.ip_address(socket.getaddrinfo(domain, None, socket.AF_INET6)[0][4][0]).is_private
+            except socket.gaierror:
+                log.warning("Unable to check local/remote for domain (IPv6): %s" % domain, exc_info=True)
+        else:
+            log.warning("Unable to check local/remote for domain: %s" % domain, exc_info=True)
+        return False
 
 def sanitize_msg(text):
     if settings.sanitize_output:
