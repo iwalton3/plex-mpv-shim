@@ -396,11 +396,13 @@ in the shader pack are also available under verious open source licenses,
 
 If you are on Linux, you can install via pip. You'll need [libmpv1](https://github.com/Kagami/mpv.js/blob/master/README.md#get-libmpv) or `mpv` installed.
 ```bash
-sudo pip3 install --upgrade plex-mpv-shim
+pip3 install --upgrade plex-mpv-shim
 ```
+Note: Recent distributions make pip unusable by default. Consider using conda or add a virtualenv to your user's path.
+
 If you would like the GUI and systray features, also install `pystray` and `tkinter`:
 ```bash
-sudo pip3 install pystray
+pip3 install pystray
 sudo apt install python3-tk
 ```
 
