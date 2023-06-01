@@ -88,7 +88,9 @@ class PlayerManager(object):
         self.url = None
         self.evt_queue = Queue()
         self.is_in_intro = False
+        self.is_in_credits = False
         self.intro_has_triggered = False
+        self.credits_has_triggered = False
 
         if is_using_ext_mpv:
             mpv_options.update(
@@ -156,6 +158,8 @@ class PlayerManager(object):
             if settings.media_key_seek:
                 if self.is_in_intro:
                     self.skip_intro()
+                elif self.is_in_credits:
+                    self.skip_credits()
                 else:
                     self._player.command("seek", 30)
             else:
@@ -201,6 +205,8 @@ class PlayerManager(object):
             else:
                 if self.is_in_intro:
                     self.skip_intro()
+                elif self.is_in_credits:
+                    self.skip_credits()
                 else:
                     self._player.command("seek", settings.seek_right)
 
@@ -211,6 +217,8 @@ class PlayerManager(object):
             else:
                 if self.is_in_intro:
                     self.skip_intro()
+                elif self.is_in_credits:
+                    self.skip_credits()
                 else:
                     self._player.command("seek", settings.seek_up)
 
@@ -289,20 +297,30 @@ class PlayerManager(object):
         if self.timeline_trigger:
             self.timeline_trigger.set()
 
-    def skip_intro(self):
+    def skip_marker(self, end_point):
         if self._media_item.media_type == MediaType.VIDEO:
-            self._player.playback_time = self._media_item.intro_end
+            self._player.playback_time = end_point
             self.timeline_handle()
+            return True
+        return False
+
+    def skip_intro(self):
+        end_point = self._media_item.intro_end
+        if self.skip_marker(end_point):
             self.is_in_intro = False
 
-    @synchronous('_lock')
-    def update(self):
+    def skip_credits(self):
+        end_point = self._media_item.credits_end
+        if self.skip_marker(end_point):
+            self.is_in_credits = False
+
+    def check_intro_or_credits(self):
         if ((settings.skip_intro_always or settings.skip_intro_prompt)
             and self._media_item is not None and self._media_item.media_type == MediaType.VIDEO and self._media_item.intro_start is not None
             and self._player.playback_time is not None
             and self._player.playback_time > self._media_item.intro_start
             and self._player.playback_time < self._media_item.intro_end):
-            
+
             if not self.is_in_intro:
                 if settings.skip_intro_always and not self.intro_has_triggered:
                     self.intro_has_triggered = True
@@ -314,6 +332,28 @@ class PlayerManager(object):
         else:
             self.is_in_intro = False
 
+        # TODO de-duplicate this code in some way - it's ugly
+        if ((settings.skip_credits_always or settings.skip_credits_prompt)
+            and self._media_item is not None and self._media_item.media_type == MediaType.VIDEO and self._media_item.credits_start is not None
+            and self._player.playback_time is not None
+            and self._player.playback_time > self._media_item.credits_start
+            and self._player.playback_time < self._media_item.credits_end):
+
+            if not self.is_in_credits:
+                if settings.skip_credits_always and not self.credits_has_triggered:
+                    self.credits_has_triggered = True
+                    self.skip_credits()
+                    self._player.show_text("Skipped Credits", 3000, 1)
+                elif settings.skip_credits_prompt:
+                    self._player.show_text("Seek to Skip Credits", 3000, 1)
+            self.is_in_credits = True
+        else:
+            self.is_in_credits = False
+
+
+    @synchronous('_lock')
+    def update(self):
+        self.check_intro_or_credits()
         while not self.evt_queue.empty():
             func, args = self.evt_queue.get()
             func(*args)
@@ -344,7 +384,9 @@ class PlayerManager(object):
         self._player.force_media_title = media_item.get_proper_title()
         self._media_item  = media_item
         self.is_in_intro = False
+        self.is_in_credits = False
         self.intro_has_triggered = False
+        self.credits_has_triggered = False
         self.update_subtitle_visuals(False)
         self.upd_player_hide()
         self.external_subtitles = {}
@@ -423,6 +465,8 @@ class PlayerManager(object):
         if not self._player.playback_abort:
             if self.is_in_intro and offset > self._player.playback_time:
                 self.skip_intro()
+            elif self.is_in_credits and offset > self._player.playback_time:
+                self.skip_credits()
             else:
                 self._player.playback_time = offset
         self.timeline_handle()

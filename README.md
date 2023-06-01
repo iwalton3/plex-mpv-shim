@@ -242,6 +242,8 @@ Currently on Windows the built-in MPV does not work with SVP. You must download 
  - `stop_idle` - Stop the player when idle. (Requires `idle_when_paused`.) Default: `false`
  - `skip_intro_always` - Always skip intros, without asking. Default: `false`
  - `skip_intro_prompt` - Prompt to skip intro via seeking. Default: `true`
+ - `skip_credits_always` - Always skip credits, without asking. Default: `false`
+ - `skip_credits_prompt` - Prompt to skip credits via seeking. Default: `true`
  - `menu_mouse` - Enable mouse support in the menu. Default: `true`
      - This requires MPV to be compiled with lua support.
 

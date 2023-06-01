@@ -90,6 +90,8 @@ class Video(MediaItem):
         self.trs_ovr       = None
         self.intro_start   = None
         self.intro_end     = None
+        self.credits_start = None
+        self.credits_end   = None
 
         if media:
             self.select_media(media, part)
@@ -105,6 +107,16 @@ class Video(MediaItem):
                 log.info("Intro Detected: {0} - {1}".format(self.intro_start, self.intro_end))
         except:
             log.error("Could not detect intro.", exc_info=True)
+
+        # TODO de-duplicate this code in some way - it's ugly
+        try:
+            marker = self.node.find("./Marker[@type='credits']")
+            if marker is not None:
+                self.credits_start = float(marker.get('startTimeOffset')) / 1e3
+                self.credits_end = float(marker.get('endTimeOffset')) / 1e3
+                log.info("Credits Detected: {0} - {1}".format(self.credits_start, self.credits_end))
+        except:
+            log.error("Could not detect credits.", exc_info=True)
 
         self.map_streams()
 
