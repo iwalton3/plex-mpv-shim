@@ -25,7 +25,7 @@ setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    install_requires=['python-mpv', 'requests', 'python-mpv-jsonipc>=1.1.8', 'certifi'],
+    install_requires=['mpv', 'requests', 'python-mpv-jsonipc>=1.1.8', 'certifi'],
     include_package_data=True
 
 )
