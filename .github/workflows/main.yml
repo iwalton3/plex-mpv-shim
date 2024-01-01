@@ -26,7 +26,7 @@ jobs:
         .\build.bat
       shell: cmd
     - name: Archive production artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows
         path: ${{ github.workspace }}/dist/*.exe
