@@ -7,6 +7,7 @@ import ipaddress
 import uuid
 import re
 import sys
+import ssl
 
 from .conf import settings
 from datetime import datetime
@@ -127,7 +128,8 @@ def safe_urlopen(url, data=None, quiet=False):
     url = get_plex_url(url, data, quiet)
 
     try:
-        page = urllib.request.urlopen(url, cafile=certifi.where())
+        context = ssl.create_default_context(cafile=certifi.where())
+        page = urllib.request.urlopen(url, context=context)
         if page.code == 200:
             return True
         log.error("Error opening URL '%s': page returned %d" % (sanitize_msg(url),
