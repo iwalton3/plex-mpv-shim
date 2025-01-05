@@ -6,6 +6,7 @@ import urllib.parse
 import certifi
 import requests
 import uuid
+import ssl
 
 try:
     import xml.etree.cElementTree as et
@@ -269,7 +270,8 @@ class Video(MediaItem):
         return audio_formats, protocols
 
     def get_decision(self, url, args):
-        tree = et.parse(urllib.request.urlopen(get_plex_url(urllib.parse.urljoin(self.parent.server_url, url), args), cafile=certifi.where()))
+        context = ssl.create_default_context(cafile=certifi.where())
+        tree = et.parse(urllib.request.urlopen(get_plex_url(urllib.parse.urljoin(self.parent.server_url, url), args), context=context))
         treeRoot = tree.getroot()
         decisionText = treeRoot.get("generalDecisionText") or treeRoot.get("mdeDecisionText")
         decision = treeRoot.get("generalDecisionCode") or treeRoot.get("mdeDecisionCode")
@@ -546,7 +548,8 @@ class XMLCollection(object):
         """
         self.path       = urllib.parse.urlparse(url)
         self.server_url = self.path.scheme + "://" + self.path.netloc
-        self.tree       = et.parse(urllib.request.urlopen(get_plex_url(url), cafile=certifi.where()))
+        self.context   = ssl.create_default_context(cafile=certifi.where())
+        self.tree       = et.parse(urllib.request.urlopen(get_plex_url(url), context=self.context))
 
     def get_path(self, path):
         parsed_url = urllib.parse.urlparse(path)
@@ -704,7 +707,8 @@ class Media(XMLCollection):
 
     def get_machine_identifier(self):
         if not hasattr(self, "_machine_identifier"):
-            doc = urllib.request.urlopen(get_plex_url(self.server_url), cafile=certifi.where())
+            context = ssl.create_default_context(cafile=certifi.where())
+            doc = urllib.request.urlopen(get_plex_url(self.server_url), context=context)
             tree = et.parse(doc)
             setattr(self, "_machine_identifier", tree.find('.').get("machineIdentifier"))
         return getattr(self, "_machine_identifier", None)
