@@ -132,7 +132,14 @@ class TimelineManager(threading.Thread):
             return False
 
     def WaitForTimeline(self, subscriber):
-        subscriber.get_poll_evt().wait(30)
+        # Use a shorter timeout when player is stopped to reduce startup/resume delays
+        # but not so short that it causes rapid polling
+        if subscriber.commandID == 0 or playerManager.get_state() == "stopped":
+            timeout = 3  # 3 seconds for initial connection or when stopped
+        else:
+            timeout = 30  # Normal 30-second long polling during playback
+
+        subscriber.get_poll_evt().wait(timeout)
         return self.GetCurrentTimeLinesXML(subscriber)
 
     def GetCurrentTimeLinesXML(self, subscriber, tlines=None):
