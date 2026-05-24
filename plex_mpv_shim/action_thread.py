@@ -9,15 +9,20 @@ class ActionThread(threading.Thread):
         self.halt           = False
 
         threading.Thread.__init__(self)
-    
+        # Daemonize so process exit isn't blocked if the loop is stuck on a
+        # @synchronous('_lock') call inside playerManager.update().
+        self.daemon = True
+
     def stop(self):
         self.halt = True
-        self.join()
+        self.trigger.set()
+        # Bounded join so shutdown can't hang here indefinitely.
+        self.join(timeout=3)
 
     def run(self):
         force_next = False
         while not self.halt:
-            if (playerManager._player and playerManager._media_item) or force_next:
+            if playerManager.is_active() or force_next:
                 playerManager.update()
 
             force_next = False
@@ -26,4 +31,3 @@ class ActionThread(threading.Thread):
                 self.trigger.clear()
 
 actionThread = ActionThread()
-

@@ -304,6 +304,8 @@ class HttpHandler(SimpleHTTPRequestHandler):
         playQueue   = arguments.get("containerKey", None)
         mediaType   = arguments.get("type", "video")
 
+        log.warning("=== HttpHandler::playMedia CALLED key=%s playQueue=%s offset=%s ===" % (key, playQueue, offset))
+
         if mediaType == "video":
             parsed_media_type = MediaType.VIDEO
         elif mediaType == "music":
@@ -314,8 +316,10 @@ class HttpHandler(SimpleHTTPRequestHandler):
             upd_token(address, token)
 
         if settings.enable_play_queue and playQueue.startswith("/playQueue"):
+            log.warning("=== playMedia: using play_queue mode ===")
             media = Media(url, media_type=parsed_media_type, play_queue=playQueue)
         else:
+            log.warning("=== playMedia: direct media mode (no play_queue) ===")
             media = Media(url, media_type=parsed_media_type)
 
         log.debug("HttpHandler::playMedia %s" % media)
@@ -337,9 +341,11 @@ class HttpHandler(SimpleHTTPRequestHandler):
         timelineManager.SendTimelineToSubscribers()
 
     def skipNext(self, path, arguments):
+        log.warning("=== HttpHandler::skipNext RECEIVED ===")
         playerManager.play_next()
 
     def skipPrevious(self, path, arguments):
+        log.warning("=== HttpHandler::skipPrevious RECEIVED ===")
         playerManager.play_prev()
 
     def stepFunction(self, path, arguments):
@@ -406,6 +412,9 @@ class HttpServer(threading.Thread):
         self.port = port
         self.sock = None
         self.addr = ('', port)
+        # Daemonize so a wedged accept/recv can't block process exit.
+        # The worker threads are already daemon=True.
+        self.daemon = True
     
     def run(self):
         log.info("Started HTTP server")
@@ -421,7 +430,8 @@ class HttpServer(threading.Thread):
         
         # Note: All of the server threads will die after the socket closes.
         # Attempting to stop a waiting thread prior will block indefinitely.
-        self.sock.close()
+        if self.sock:
+            self.sock.close()
 
 # Adapted from https://stackoverflow.com/a/46224191
 class HttpServerThread(threading.Thread):
@@ -441,5 +451,4 @@ class HttpServerThread(threading.Thread):
         self.server.socket = self.sock
         self.server.server_bind = self.server_close = lambda self: None
         self.server.serve_forever()
-
 

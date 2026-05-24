@@ -38,23 +38,34 @@ class TimelineManager(threading.Thread):
         self.last_server_url = None
 
         threading.Thread.__init__(self)
+        # Daemonize so a blocked Plex HTTP call in this loop can't keep
+        # the process alive after the user closes the shim.
+        self.daemon = True
 
     def stop(self):
         self.halt = True
-        self.sender_pool.close()
-        self.join()
+        self.trigger.set()
+        # terminate() kills in-flight pool workers instead of waiting for them
+        # to finish slow Plex requests; close()+join() would block here.
+        try:
+            self.sender_pool.terminate()
+            self.sender_pool.join()
+        except Exception:
+            pass
+        # Bounded join so shutdown can't hang here indefinitely.
+        self.join(timeout=3)
 
     def run(self):
         force_next = False
         while not self.halt:
-            if (playerManager._player and playerManager._media_item and (not settings.idle_when_paused
+            if (playerManager.is_active() and (not settings.idle_when_paused
                 or not playerManager.is_paused())) or force_next:
                 if not playerManager.is_paused() or force_next:
                     self.SendTimelineToSubscribers()
                 self.delay_idle()
             force_next = False
             if self.idleTimer.elapsed() > settings.idle_cmd_delay and not self.is_idle:
-                if settings.idle_when_paused and settings.stop_idle and playerManager._media_item:
+                if settings.idle_when_paused and settings.stop_idle and playerManager.has_media():
                     playerManager.stop()
                 if settings.idle_cmd:
                     os.system(settings.idle_cmd)
@@ -169,7 +180,8 @@ class TimelineManager(threading.Thread):
 
         # The playback_time value can take on the value of none, probably
         # when playback is complete. This avoids the thread crashing.
-        if media_item and not player.playback_abort and player.playback_time:
+        playback_time = playerManager.get_playback_time()
+        if playerManager.is_active() and not playerManager.playback_is_aborted() and playback_time:
             self.last_media_item = media_item
             media = media_item.parent
 
@@ -180,7 +192,7 @@ class TimelineManager(threading.Thread):
                 options["type"]          = "video"
                 options["location"]      = "fullScreenMusic"
 
-            options["time"]              = int(player.playback_time * 1e3)
+            options["time"]              = int(playback_time * 1e3)
             options["autoPlay"]          = '1' if settings.auto_play else '0'
             
             aid, sid = playerManager.get_track_ids()
@@ -247,7 +259,7 @@ class TimelineManager(threading.Thread):
                 options["containerKey"]      = media_item.get_attr("key")
                 if media_item.parent.play_queue:
                     options.update(media_item.parent.get_queue_info())
-            if player.playback_abort:
+            if playerManager.playback_is_aborted():
                 options["state"] = "stopped"
             else:
                 options["state"] = "buffering"

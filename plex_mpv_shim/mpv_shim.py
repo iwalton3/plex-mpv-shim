@@ -3,6 +3,7 @@
 import logging
 import sys
 import time
+import os
 import os.path
 import multiprocessing
 
@@ -19,6 +20,32 @@ log = logging.getLogger('')
 
 logging.getLogger('requests').setLevel(logging.CRITICAL)
 
+def setup_file_logging():
+    """Setup file logging to the config directory."""
+    if settings.enable_debug_log:
+        try:
+            # Get the config directory
+            log_dir = conffile.confdir(APP_NAME)
+            log_file = os.path.join(log_dir, 'plex-mpv-shim.log')
+            
+            # Create file handler
+            file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
+            
+            # Set log level
+            log_level = getattr(logging, settings.debug_log_level.upper(), logging.DEBUG)
+            file_handler.setLevel(log_level)
+            
+            # Create formatter
+            formatter = logging.Formatter("%(asctime)s [%(levelname)8s] %(name)s: %(message)s")
+            file_handler.setFormatter(formatter)
+            
+            # Add handler to root logger
+            logging.getLogger('').addHandler(file_handler)
+            
+            log.info("Debug logging enabled to: %s" % log_file)
+        except Exception as e:
+            log.error("Failed to setup file logging: %s" % str(e))
+
 def update_gdm_settings(name=None, value=None):
     gdm.clientDetails(settings.client_uuid, settings.player_name,
         settings.http_port, "Plex MPV Shim", "1.0")
@@ -30,18 +57,14 @@ def main():
     settings.load(conf_file)
     settings.add_listener(update_gdm_settings)
     
-    log_level_mapping = {
-        "debug": logging.DEBUG,
-        "info": logging.INFO,
-        "warning": logging.WARNING,
-        "error": logging.ERROR,
-        "critical": logging.CRITICAL
-    }
-    app_log_level = log_level_mapping.get(settings.app_log_level.lower(), logging.INFO)
-    logging.getLogger().setLevel(app_log_level)
+    # Setup file logging after settings are loaded
+    setup_file_logging()
     
     if sys.platform.startswith("darwin"):
-        multiprocessing.set_start_method('forkserver')
+        try:
+            multiprocessing.set_start_method('spawn')
+        except RuntimeError:
+            pass
 
     use_gui = False
     if settings.enable_gui:
@@ -60,7 +83,8 @@ def main():
     from .client import HttpServer
 
     update_gdm_settings()
-    gdm.start_all()
+    # daemon=True so the GDM registration UDP loop can't block process exit.
+    gdm.start_all(daemon=True)
 
     log.info("Started GDM service")
 
@@ -79,12 +103,33 @@ def main():
         print("")
         log.info("Stopping services...")
     finally:
-        playerManager.terminate()
-        server.stop()
-        timelineManager.stop()
-        actionThread.stop()
-        gdm.stop_all()
+        # Wrap each cleanup so a single hung call can't prevent the rest from
+        # running. We then force-exit at the end to bypass any lingering
+        # non-daemon threads or subprocess pipes (notably python-mpv-jsonipc's
+        # event handler under Python 3.14, which can't be join()ed at
+        # finalization).
+        for shutdown_step in (
+            ("playerManager.terminate", playerManager.terminate),
+            ("server.stop", server.stop),
+            ("timelineManager.stop", timelineManager.stop),
+            ("actionThread.stop", actionThread.stop),
+            ("gdm.stop_all", gdm.stop_all),
+        ):
+            name, fn = shutdown_step
+            try:
+                fn()
+            except Exception:
+                log.warning("Error during shutdown step %s" % name, exc_info=True)
+        if use_gui:
+            try:
+                userInterface.stop()
+            except Exception:
+                log.warning("Error stopping userInterface", exc_info=True)
+        log.info("Shutdown complete; forcing process exit.")
+        # Force-exit. This skips Python finalization (which is what hangs on
+        # Python 3.14 due to python-mpv-jsonipc's non-joinable thread) and
+        # immediately reaps any remaining daemon threads / subprocess pipes.
+        os._exit(0)
 
 if __name__ == "__main__":
     main()
-
