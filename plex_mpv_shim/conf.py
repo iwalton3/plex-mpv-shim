@@ -44,11 +44,14 @@ class Settings(object):
         "mpv_ext_path":         None,
         "mpv_ext_ipc":          None,
         "mpv_ext_start":        True,
+        "mpv_ext_start_retries": 10,
+        "mpv_ext_start_retry_delay_ms": 3000,
         "mpv_ext_no_ovr":       False,
+        "mpv_ext_no_keybinds":  False,
         "enable_osc":           True,
         "log_decisions":        False,
         "mpv_log_level":        "info",
-        "app_log_level":        "info",
+        "media_keys":           True,
         "idle_when_paused":     False,
         "stop_idle":            False,
         "kb_stop":              "q",
@@ -82,6 +85,9 @@ class Settings(object):
         "svp_socket":           None,
         "shader_pack_subtype":  "lq",
         "menu_mouse":           True,
+        "raise_mpv":            True,
+        "enable_debug_log":     True,
+        "debug_log_level":      "DEBUG",
     }
 
     def __getattr__(self, name):

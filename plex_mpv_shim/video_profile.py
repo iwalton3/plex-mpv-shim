@@ -27,6 +27,13 @@ class VideoProfileManager:
     def load_shader_pack(self):
         shader_pack_builtin = get_resource("default_shader_pack")
 
+        if not os.path.exists(shader_pack_builtin):
+            raise FileNotFoundError(
+                "Built-in shader pack not found at '{0}'. "
+                "The default_shader_pack directory is missing from your installation. "
+                "Try reinstalling Plex MPV Shim.".format(shader_pack_builtin)
+            )
+
         self.shader_pack = shader_pack_builtin
         if settings.shader_pack_custom:
             self.shader_pack = conffile.get(APP_NAME, "shader_pack")

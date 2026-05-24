@@ -148,9 +148,12 @@ for media playback on OSX.
 - `mpv_ext_start` - Start a managed copy of MPV with the client. Default: `true`
     - If not specified, the user must start MPV prior to launching the client.
     - MPV must be launched with `--input-ipc-server=[value of mpv_ext_ipc]`.
+- `mpv_ext_start_retries` - The number of times to retry starting external MPV. Default: `10`
+- `mpv_ext_start_retry_delay_ms` - The delay in milliseconds between external MPV start retries. Default: `3000`
 - `mpv_ext_no_ovr` - Disable built-in mpv configuration files and use user defaults.
     - Please note that some scripts and settings, such as ones to keep MPV open, may break
       functionality in MPV Shim.
+- `mpv_ext_no_keybinds` - With external MPV, do not register MPV Shim's internal keyboard shortcuts except close/stop handling. Default: `false`
 
 ### Keyboard Shortcuts
 
@@ -233,6 +236,8 @@ Currently on Windows the built-in MPV does not work with SVP. You must download 
  - `fullscreen` - Fullscreen the player when starting playback. Default: `true`
  - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
  - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
+ - `media_keys` - Enable media key handling in MPV. Default: `true`
+ - `raise_mpv` - Windows only. Raise the MPV window when playback starts. Default: `true`
  - `enable_osc` - Enable the MPV on-screen controller. Default: `true`
     - It may be useful to disable this if you are using an external player that already provides a user interface.
  - `log_decisions` - Log the full playback URLs. Default: `false`
@@ -448,7 +453,6 @@ and libmpv libraries are either 64 or 32 bit. (Don't mismatch them.)
 1. Install [Python3](https://www.python.org/downloads/) with PATH enabled. Install [7zip](https://ninite.com/7zip/).
 2. After installing python3, open `cmd` as admin and run `pip install --upgrade pyinstaller python-mpv requests pywin32 pystray python-mpv-jsonipc`.
 3. Download [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
-4. Extract the `mpv-1.dll` from the file and move it to the `plex-mpv-shim` folder.
+4. Extract the `mpv-2.dll` from the file and move it to the `plex-mpv-shim` folder.
 5. Open a regular `cmd` prompt. Navigate to the `plex-mpv-shim` folder.
-6. If you would like the shader pack included, [download it](https://github.com/iwalton3/default-shader-pack) and put the contents into `plex_mpv_shim\default_shader_pack`.
-7. Run `pyinstaller -wF --add-binary "mpv-1.dll;." --add-data "plex_mpv_shim\default_shader_pack;plex_mpv_shim\default_shader_pack" --add-binary "plex_mpv_shim\systray.png;." --icon media.ico run.py --hidden-import pystray._win32`.
+6. Run `build.bat` to create `dist\run\run.exe`, or run `build-debug.bat` to create a console-enabled `dist\run.exe`.

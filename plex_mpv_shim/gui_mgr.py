@@ -1,8 +1,6 @@
 from pystray import Icon, MenuItem, Menu
 from PIL import Image
 from collections import deque
-import tkinter as tk
-from tkinter import ttk, messagebox
 import subprocess
 from multiprocessing import Process, Queue
 import threading
@@ -105,6 +103,7 @@ class LoggerWindow(threading.Thread):
         guiHandler.callback = None
         self.handle("die")
         self.process.terminate()
+        self.process.join(2)
         self.dead = True
 
 class LoggerWindowProcess(Process):
@@ -133,6 +132,8 @@ class LoggerWindowProcess(Process):
         self.text.after(100, self.update)
 
     def run(self):
+        import tkinter as tk
+
         root = tk.Tk()
         self.root = root
         root.title("Application Log")
@@ -189,10 +190,12 @@ class UserInterface:
         self.queue.put((action, params))
 
     def stop(self):
-        self.handle("die")
+        if not self.dead:
+            self.r_queue.put(("die", None))
     
     def _die(self):
         self.process.terminate()
+        self.process.join(2)
         self.dead = True
 
         if self.log_window and not self.log_window.dead:

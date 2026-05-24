@@ -50,3 +50,8 @@ def get(app, conf_file, create=False):
         open(conf_file, 'w').close()
     return conf_file
 
+def get_dir(app, subfolder):
+    conf_folder = os.path.join(confdir(app), subfolder)
+    if not os.path.isdir(conf_folder):
+        os.makedirs(conf_folder)
+    return conf_folder

@@ -590,8 +590,12 @@ class Media(XMLCollection):
 
         if self.play_queue:
             if not series:
+                log.warning("=== Media.__init__: play_queue mode, calling upd_play_queue ===")
                 self.upd_play_queue()
+                # If after upd_play_queue we still have no series or only 1 item, it means play_queue was empty/incomplete
+                # This is already handled by upd_play_queue fallback above
             else:
+                log.warning("=== Media.__init__: play_queue mode WITH series provided, seq=%d, series_len=%d ===" % (seq, len(series)))
                 self.series = series
                 self.seq = seq
                 self.has_next = self.seq < len(self.series) - 1
@@ -608,22 +612,99 @@ class Media(XMLCollection):
                 
                 # This part is kind of nasty, so we only try to do it once per cast session.
                 key = self.media_item.get('key')
+                log.warning("=== Media.__init__ loading series for key=%s ===" % key)
                 is_special = False
                 for i, video in enumerate(videos):
                     if video.get('key') == key:
                         self.seq = i
                         is_special = video.get('parentIndex') == '0'
+                        log.warning("=== Media.__init__ FOUND current episode at seq=%d, is_special=%s ===" % (i, is_special))
                     if video.get('parentIndex') == '0':
                         specials.append(video)
                     else:
                         self.series.append(video)
+                
+                # Validate that seq was found
+                if self.seq is None:
+                    log.warning("=== Media.__init__ could not find current episode by key, resetting seq to 0 ===")
+                    self.seq = 0
+                
                 if is_special:
                     self.seq += len(self.series)
+                    log.warning("=== Media.__init__ adjusted seq for special: seq=%d ===" % self.seq)
                 else:
                     self.seq -= len(specials)
+                    log.warning("=== Media.__init__ adjusted seq for specials: seq=%d ===" % self.seq)
                 self.series.extend(specials)
+                
+                # Ensure seq is in valid range
+                if self.seq < 0 or self.seq >= len(self.series):
+                    log.warning("=== Media.__init__ seq=%d out of range [0, %d), resetting to 0 ===" % (self.seq, len(self.series)))
+                    self.seq = 0
+            
             self.has_next = self.seq < len(self.series) - 1
             self.has_prev = self.seq > 0
+            log.warning("=== Media.__init__ FINAL: seq=%d, has_next=%s, series_len=%d ===" % (self.seq, self.has_next, len(self.series)))
+
+    def _use_series_item(self, item, seq):
+        self.media_item = item
+        self.seq = seq
+        self.has_next = self.seq < len(self.series) - 1
+        self.has_prev = self.seq > 0
+        if self.media_type == MediaType.VIDEO:
+            self.is_tv = self.media_item.get("type") == "episode"
+
+    def _is_current_item(self, item):
+        for attr in ("playQueueItemID", "ratingKey", "key"):
+            current_value = self.media_item.get(attr)
+            item_value = item.get(attr)
+            if current_value and item_value and current_value == item_value:
+                log.warning("=== _is_current_item MATCH: attr=%s, value=%s ===" % (attr, current_value))
+                return True
+        log.warning("=== _is_current_item NO MATCH: current_item keys=%s, comparing with item keys=%s ===" % (
+            {k: self.media_item.get(k) for k in ("playQueueItemID", "ratingKey", "key")},
+            {k: item.get(k) for k in ("playQueueItemID", "ratingKey", "key")}
+        ))
+        return False
+
+    def _expand_via_all_leaves(self):
+        """Expand self.series with all episodes from the current season.
+
+        Fetches the season's episode list via parentKey/children (not
+        grandparentKey/allLeaves) so only the current season is loaded,
+        not the entire multi-season show. Locates the current episode in
+        the result and updates self.seq accordingly. Leaves state untouched
+        and returns False on failure or if not applicable.
+        """
+        if not self.is_tv or self.media_type != MediaType.VIDEO:
+            return False
+        parent_key = self.media_item.get("parentKey") if self.media_item is not None else None
+        if not parent_key:
+            log.warning("=== _expand_via_all_leaves: no parentKey on current item ===")
+            return False
+        try:
+            series_xml = XMLCollection(self.get_path(parent_key + "/children"))
+            all_videos = series_xml.tree.findall('./Video')
+            new_series = list(all_videos)
+
+            current_key = self.media_item.get('key')
+            new_seq = None
+            for i, video in enumerate(new_series):
+                if video.get('key') == current_key:
+                    new_seq = i
+                    break
+
+            if new_seq is None:
+                log.warning("=== _expand_via_all_leaves: current episode not found in season, leaving existing series intact ===")
+                return False
+
+            self.series = new_series
+            self.seq = new_seq
+            log.warning("=== _expand_via_all_leaves: season has %d episodes, seq=%d ===" % (len(self.series), self.seq))
+            return True
+        except Exception as e:
+            log.error("=== _expand_via_all_leaves FAILED: %s ===" % str(e))
+            return False
 
     def upd_play_queue(self):
         if self.play_queue:
@@ -632,11 +713,22 @@ class Media(XMLCollection):
                 videos = self.play_queue_xml.tree.findall('./Video')
                 self.series = []
 
-                key = self.media_item.get('key')
                 for i, video in enumerate(videos):
-                    if video.get('key') == key:
+                    if self._is_current_item(video):
                         self.seq = i
                     self.series.append(video)
+
+                if self.seq is None:
+                    self.seq = 0
+
+                log.warning("=== upd_play_queue: loaded %d items, seq=%s ===" % (len(self.series), self.seq))
+
+                # Always expand to full season for TV shows so that episodes
+                # before the starting point are included in the playlist and
+                # backward navigation works correctly.
+                if self.is_tv:
+                    log.warning("=== upd_play_queue: TV show, expanding via allLeaves for full season ===")
+                    self._expand_via_all_leaves()
 
                 self.has_next = self.seq < len(self.series) - 1
                 self.has_prev = self.seq > 0
@@ -645,12 +737,13 @@ class Media(XMLCollection):
                 tracks = self.play_queue_xml.tree.findall('./Track')
                 self.series = []
 
-                key = self.media_item.get('key')
                 for i, track in enumerate(tracks):
-                    if track.get('key') == key:
+                    if self._is_current_item(track):
                         self.seq = i
                     self.series.append(track)
 
+                if self.seq is None:
+                    self.seq = 0
                 self.has_next = self.seq < len(self.series) - 1
                 self.has_prev = self.seq > 0
 
@@ -663,25 +756,67 @@ class Media(XMLCollection):
         }
 
     def get_next(self):
+        log.warning("=== get_next() CALLED ===")
+        if self.play_queue and not self.has_next:
+            log.warning("=== get_next: updating play_queue ===")
+            self.upd_play_queue()
+
+            # If the re-fetched play_queue is still exhausted (Plex often returns
+            # a truncated 1-2 item window), fall back to the full season via
+            # allLeaves so auto-play can continue past the queue boundary.
+            if (self.is_tv
+                    and self.seq is not None
+                    and self.seq >= len(self.series) - 1):
+                log.warning("=== get_next: play_queue exhausted at seq=%d/len=%d, expanding via allLeaves ===" % (self.seq, len(self.series)))
+                if self._expand_via_all_leaves():
+                    self.has_next = self.seq < len(self.series) - 1
+                    self.has_prev = self.seq > 0
+
+        # Validate seq is properly set before attempting to get next
+        if self.seq is None:
+            log.warning("=== get_next: seq is None, cannot determine next episode ===")
+            return None
+
+        log.warning("=== get_next: has_next=%s, seq=%s ===" % (self.has_next, self.seq))
         if self.has_next:
-            if self.play_queue and self.seq+2 == len(self.series):
+            if self.play_queue and self.seq + 2 == len(self.series):
+                log.warning("=== get_next: prefetch more from play_queue ===")
                 self.upd_play_queue()
-            next_video = self.series[self.seq+1]
-            return Media(self.get_path(next_video.get('key')), self.series, self.seq+1, self.play_queue, self.play_queue_xml, self.media_type)
+            try:
+                next_video = self.series[self.seq+1]
+                next_key = next_video.get('key')
+                next_rating = next_video.get('ratingKey')
+                log.warning("=== get_next: current_seq=%d, next_seq_will_be=%d, series_len=%d, next_key=%s, next_rating=%s ===" % (
+                    self.seq, self.seq+1, len(self.series), next_key, next_rating))
+                media = Media(self.get_path(next_key), self.series, self.seq+1, self.play_queue, self.play_queue_xml, self.media_type)
+                log.warning("=== get_next: Media created, new_media.seq=%d ===" % media.seq)
+                media._use_series_item(next_video, self.seq + 1)
+                log.warning("=== get_next: successfully created next media, final seq=%d, next_key=%s ===" % (media.seq, media.media_item.get('key')))
+                return media
+            except (IndexError, TypeError) as e:
+                log.error("=== get_next: FAILED: %s ===" % str(e))
+                return None
+        else:
+            log.warning("=== get_next: has_next=False, series_len=%d ===" % len(self.series) if hasattr(self, 'series') else 0)
+            return None
     
     def get_prev(self):
         if self.has_prev:
             if self.play_queue and self.seq-1 == 0:
                 self.upd_play_queue()
             prev_video = self.series[self.seq-1]
-            return Media(self.get_path(prev_video.get('key')), self.series, self.seq-1, self.play_queue, self.play_queue_xml, self.media_type)
+            media = Media(self.get_path(prev_video.get('key')), self.series, self.seq-1, self.play_queue, self.play_queue_xml, self.media_type)
+            media._use_series_item(prev_video, self.seq - 1)
+            return media
 
     def get_from_key(self, key):
         if self.play_queue:
             self.upd_play_queue()
             for i, video in enumerate(self.series):
                 if video.get("key") == key:
-                    return Media(self.get_path(key), self.series, i, self.play_queue, self.play_queue_xml, self.media_type)
+                    media = Media(self.get_path(key), self.series, i, self.play_queue, self.play_queue_xml, self.media_type)
+                    media._use_series_item(video, i)
+                    return media
             return None
         else:
             return Media(self.get_path(key), media_type=self.media_type)
@@ -698,7 +833,7 @@ class Media(XMLCollection):
         elif self.media_type == MediaType.MUSIC:
             if index == 0 and self.media_item:
                 return Track(self.media_item, self, media, part)
-            
+
             track = self.tree.find('./Track[%s]' % (index+1))
             if track:
                 return Track(track, self, media, part)
@@ -712,4 +847,3 @@ class Media(XMLCollection):
             tree = et.parse(doc)
             setattr(self, "_machine_identifier", tree.find('.').get("machineIdentifier"))
         return getattr(self, "_machine_identifier", None)
-
