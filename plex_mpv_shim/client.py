@@ -1,11 +1,9 @@
-import certifi
 import datetime
 import json
 import logging
 import os
 import posixpath
 import threading
-import urllib.request, urllib.parse, urllib.error
 import urllib.parse
 import socket
 from time import mktime
@@ -15,7 +13,7 @@ from http.server import HTTPServer
 from http.server import SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from .media import MediaType
-from .utils import upd_token, sanitize_msg, plex_color_to_mpv
+from .utils import upd_token, sanitize_msg, plex_color_to_mpv, normalize_plex_url
 from .conf import settings
 
 try:
@@ -301,6 +299,7 @@ class HttpHandler(SimpleHTTPRequestHandler):
         key         = arguments.get("key",          None)
         offset      = int(int(arguments.get("offset",   0))/1e3)
         url         = urllib.parse.urljoin("%s://%s:%s" % (protocol, address, port), key)
+        url         = normalize_plex_url(url)
         playQueue   = arguments.get("containerKey", None)
         mediaType   = arguments.get("type", "video")
 

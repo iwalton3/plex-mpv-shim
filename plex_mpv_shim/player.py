@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-import requests
 import urllib.parse
 
 from threading import RLock, Lock

@@ -1,5 +1,5 @@
 from .conf import settings
-import urllib.request
+from .utils import urlopen
 import urllib.error
 import logging
 import sys
@@ -9,7 +9,7 @@ log = logging.getLogger('svp_integration')
 
 def list_request(path):
     try:
-        response = urllib.request.urlopen(settings.svp_url + "?" + path)
+        response = urlopen(settings.svp_url + "?" + path)
         return response.read().decode('utf-8').replace('\r\n', '\n').split('\n')
     except urllib.error.URLError as ex:
         log.error("Could not reach SVP API server.", exc_info=1)

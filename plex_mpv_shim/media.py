@@ -1,12 +1,8 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 import logging
-import urllib.request, urllib.parse, urllib.error
 import urllib.parse
-import certifi
-import requests
 import uuid
-import ssl
 
 try:
     import xml.etree.cElementTree as et
@@ -14,7 +10,7 @@ except:
     import xml.etree.ElementTree as et
 
 from .conf import settings
-from .utils import get_plex_url, safe_urlopen, is_local_domain, get_transcode_session, clear_transcode_session, sanitize_msg
+from .utils import get_plex_url, safe_urlopen, is_local_domain, get_transcode_session, clear_transcode_session, sanitize_msg, normalize_plex_url, plex_urlopen, get_requests_session
 
 log = logging.getLogger('media')
 
@@ -205,7 +201,7 @@ class Video(MediaItem):
         if self._part_node != None:
             partid = self._part_node.get("id")
             url = "/library/parts/{0}".format(partid)
-            requests.put(get_plex_url(urllib.parse.urljoin(self.parent.server_url, url), args), data=None)
+            get_requests_session().put(get_plex_url(urllib.parse.urljoin(self.parent.server_url, url), args), data=None)
 
     def get_proper_title(self):
         if not hasattr(self, "_title"):
@@ -270,8 +266,7 @@ class Video(MediaItem):
         return audio_formats, protocols
 
     def get_decision(self, url, args):
-        context = ssl.create_default_context(cafile=certifi.where())
-        tree = et.parse(urllib.request.urlopen(get_plex_url(urllib.parse.urljoin(self.parent.server_url, url), args), context=context))
+        tree = et.parse(plex_urlopen(urllib.parse.urljoin(self.parent.server_url, url), args))
         treeRoot = tree.getroot()
         decisionText = treeRoot.get("generalDecisionText") or treeRoot.get("mdeDecisionText")
         decision = treeRoot.get("generalDecisionCode") or treeRoot.get("mdeDecisionCode")
@@ -546,10 +541,10 @@ class XMLCollection(object):
         """
         ``url`` should be a URL to the Plex XML media item.
         """
+        url             = normalize_plex_url(url)
         self.path       = urllib.parse.urlparse(url)
         self.server_url = self.path.scheme + "://" + self.path.netloc
-        self.context   = ssl.create_default_context(cafile=certifi.where())
-        self.tree       = et.parse(urllib.request.urlopen(get_plex_url(url), context=self.context))
+        self.tree       = et.parse(plex_urlopen(url))
 
     def get_path(self, path):
         parsed_url = urllib.parse.urlparse(path)
@@ -707,8 +702,7 @@ class Media(XMLCollection):
 
     def get_machine_identifier(self):
         if not hasattr(self, "_machine_identifier"):
-            context = ssl.create_default_context(cafile=certifi.where())
-            doc = urllib.request.urlopen(get_plex_url(self.server_url), context=context)
+            doc = plex_urlopen(self.server_url)
             tree = et.parse(doc)
             setattr(self, "_machine_identifier", tree.find('.').get("machineIdentifier"))
         return getattr(self, "_machine_identifier", None)

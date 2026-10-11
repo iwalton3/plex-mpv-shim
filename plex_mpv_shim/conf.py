@@ -21,6 +21,7 @@ class Settings(object):
         "client_uuid":          str(uuid.uuid4()),
         "enable_play_queue":    True,
         "allow_http":           False,
+        "force_http":           False,
         "media_ended_cmd":      None,
         "pre_media_cmd":        None,
         "stop_cmd":             None,
