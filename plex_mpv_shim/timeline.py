@@ -17,7 +17,7 @@ from .conf import settings
 from .media import MediaType
 from .player import playerManager
 from .subscribers import remoteSubscriberManager
-from .utils import Timer, safe_urlopen, mpv_color_to_plex
+from .utils import Timer, safe_urlopen, mpv_color_to_plex, get_requests_session
 
 log = logging.getLogger("timeline")
 
@@ -117,7 +117,7 @@ class TimelineManager(threading.Thread):
 
         # TODO: Abstract this into a utility function and add other X-Plex-XXX fields
         try:
-            requests.post(url, data=xmlData, headers={
+            get_requests_session().post(url, data=xmlData, headers={
                 "Content-Type":             "application/x-www-form-urlencoded",
                 "Connection":               "keep-alive",
                 "Content-Range":            "bytes 0-/-1",

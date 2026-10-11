@@ -226,6 +226,11 @@ Currently on Windows the built-in MPV does not work with SVP. You must download 
  - `audio_dtspassthrough` - Does not work. Currently only changes transcoder settings. Default: `false`
  - `allow_http` - Allow insecure Plex server connections. Default: `false`
     - This may be useful if you are using a Plex server offline or not signed in.
+ - `force_http` - Rewrite all Plex server connections to use unencrypted `http://`
+   instead of `https://`. Default: `false`
+    - This also enables insecure connections, so `allow_http` does not need to be
+      set separately. Useful when the server has a self-signed or otherwise
+      untrusted TLS certificate.
  - `client_profile` - The client profile for transcoding. Default: `Plex Home Theater`
     - It may be useful to change this on limited hardware.
     - If you change this, it should be changed to a profile that supports `hls` streaming.

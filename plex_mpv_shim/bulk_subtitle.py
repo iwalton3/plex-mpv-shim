@@ -1,9 +1,8 @@
 from .media import XMLCollection
-from .utils import get_plex_url
+from .utils import get_plex_url, get_requests_session
 
 from collections import namedtuple
 import urllib.parse
-import requests
 import time
 import logging
 
@@ -89,7 +88,7 @@ def process_series(mode, url, player, m_raid=None, m_rsid=None):
                     "subtitleStreamID": sid
                 }
                 url = "/library/parts/{0}".format(part.id)
-                requests.put(get_plex_url(urllib.parse.urljoin(xml.server_url, url), args), data=None)
+                get_requests_session().put(get_plex_url(urllib.parse.urljoin(xml.server_url, url), args), data=None)
             else:
                 render_message("{0}: Fail".format(name), show_text)
     
